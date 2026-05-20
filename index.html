@@ -7,8 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="APEX">
-<title>APEX Tracker v6</title>
+<title>APEX</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#0a0a0b;--s1:#111113;--s2:#18181c;--s3:#222228;--s4:#2c2c34;
@@ -545,10 +546,20 @@ canvas{display:block;width:100%!important;height:100%!important}
 <div id="pg-body" class="pg">
   <div class="hdr">
     <div><div class="hd-t">BODY <em>STATS</em></div></div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
       <button class="btn bl sm" onclick="exportBackup()">⬇ Backup</button>
       <button class="btn gh sm" onclick="document.getElementById('import-file').click()">⬆ Restore</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(event)">
+      <button class="btn sm" id="drive-btn" onclick="driveSync()" style="background:var(--s3);color:var(--tx2);border:1px solid var(--bd2)">☁ Drive Sync</button>
+    </div>
+  </div>
+  <!-- Drive status bar -->
+  <div id="drive-status-bar" style="display:none;margin:0 13px 8px;padding:8px 12px;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--rs);font-size:11px;color:var(--tx2);display:flex;justify-content:space-between;align-items:center">
+    <span id="drive-status-text">Not connected</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn sm" style="font-size:10px;padding:3px 8px" onclick="drivePush()">↑ Save now</button>
+      <button class="btn gh sm" style="font-size:10px;padding:3px 8px" onclick="drivePull()">↓ Load from Drive</button>
+      <button class="btn dn sm" style="font-size:10px;padding:3px 8px" onclick="driveSignOut()">Sign out</button>
     </div>
   </div>
   <div class="card">
@@ -1168,6 +1179,7 @@ function logMeal(id){
   const m=MEALS.find(x=>x.id===id);if(!m)return;
   FUEL.log.push({n:m.n,p:m.p,c:m.c,f:m.f,k:m.k,t:timeNow()});
   recalcFuel();saveFuelState();renderFuelLog();refreshMacroUI();toast('Logged: '+m.n);
+  drivePushIfConnected();
 }
 
 function delFoodItem(i){FUEL.log.splice(i,1);recalcFuel();saveFuelState();renderFuelLog();refreshMacroUI();}
@@ -1797,6 +1809,7 @@ function logBW(){
   if(isNaN(v)||v<20||v>300){toast('Enter valid weight');return;}
   BODY.entries.push({date:TODAY,bw:v,bf:T.currentBF});BODY.currentBW=v;LS.set('body',BODY);
   document.getElementById('bw-in').value='';renderBody();renderHome();toast('Logged: '+v+' kg');
+  drivePushIfConnected();
 }
 function renderBody(){renderBodyStats();renderBodyHist();renderBodyCharts();}
 function renderBodyStats(){
@@ -1992,6 +2005,220 @@ function appendTyping(){
 }
 function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
 
+// ═══════════════ GOOGLE DRIVE SYNC ═══════════════
+const GOOG_CLIENT_ID = '50021772575-dipdiqkt33qneebln7tc3bbf2rb62uu2.apps.googleusercontent.com';
+const GOOG_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_FILENAME = 'apex_backup.json';
+
+let driveToken = null;
+let driveFileId = LS.get('drive_file_id', null);
+let driveUser = LS.get('drive_user', null);
+let tokenClient = null;
+let driveAutoTimer = null;
+
+function initDriveClient(){
+  if(!window.google){setTimeout(initDriveClient, 500); return;}
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOG_CLIENT_ID,
+    scope: GOOG_SCOPES,
+    callback: async (resp) => {
+      if(resp.error){
+        driveSetStatus('❌ Sign-in failed: ' + resp.error, false);
+        return;
+      }
+      driveToken = resp.access_token;
+      // Get user info
+      try{
+        const ui = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers:{Authorization:'Bearer '+driveToken}
+        });
+        const ud = await ui.json();
+        driveUser = ud.email || 'Connected';
+        LS.set('drive_user', driveUser);
+      }catch(e){}
+      driveSetStatus('✓ '+driveUser+' — syncing…', true);
+      await drivePush();
+      driveStartAutoSync();
+    }
+  });
+  // Restore session if user was previously connected
+  if(driveUser) driveRestoreSession();
+}
+
+function driveRestoreSession(){
+  // Show status bar with last known user
+  showDriveBar();
+  driveSetStatus('☁ '+driveUser+' — tap Save now to sync', true);
+}
+
+function driveSync(){
+  if(!tokenClient){toast('Google not loaded yet, try again');return;}
+  // If we already have a token, just push. Otherwise prompt login.
+  if(driveToken){
+    drivePush();
+  } else {
+    tokenClient.requestAccessToken({prompt: driveUser ? 'none' : 'consent'});
+  }
+}
+
+function showDriveBar(){
+  const bar = document.getElementById('drive-status-bar');
+  if(bar) bar.style.display = 'flex';
+}
+
+function driveSetStatus(msg, connected){
+  showDriveBar();
+  const el = document.getElementById('drive-status-text');
+  if(el) el.textContent = msg;
+  const btn = document.getElementById('drive-btn');
+  if(btn){
+    btn.textContent = connected ? '☁ Synced' : '☁ Drive Sync';
+    btn.style.background = connected ? 'rgba(200,245,58,0.13)' : 'var(--s3)';
+    btn.style.color = connected ? 'var(--acc)' : 'var(--tx2)';
+    btn.style.borderColor = connected ? 'var(--acc)' : 'var(--bd2)';
+  }
+}
+
+function buildBackupData(){
+  return JSON.stringify({
+    version:7,
+    exportedAt: new Date().toISOString(),
+    targets:T, meals:MEALS, fuel:FUEL, fuel_hist:FUEL_HIST,
+    body:BODY, sessions:SESS, hiit_log:HIIT_LOG,
+    programs:PROGRAMS, active_prog:ACTIVE_PROG, cex:CEX,
+    saved_prompts:SAVED_PROMPTS,
+  }, null, 2);
+}
+
+async function drivePush(){
+  if(!driveToken){toast('Not signed in to Drive');return;}
+  driveSetStatus('↑ Saving to Drive…', true);
+  try{
+    const content = buildBackupData();
+    const blob = new Blob([content], {type:'application/json'});
+
+    if(driveFileId){
+      // Update existing file
+      const res = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+        {method:'PATCH', headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'}, body:blob}
+      );
+      if(res.status === 404){driveFileId=null; LS.set('drive_file_id',null); await drivePush(); return;}
+      if(!res.ok) throw new Error('Update failed: '+res.status);
+    } else {
+      // Search for existing file first
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id,name)`,
+        {headers:{Authorization:'Bearer '+driveToken}}
+      );
+      const searchData = await searchRes.json();
+      if(searchData.files && searchData.files.length > 0){
+        driveFileId = searchData.files[0].id;
+        LS.set('drive_file_id', driveFileId);
+        await drivePush(); return;
+      }
+      // Create new file in appDataFolder (hidden, private, only this app can see it)
+      const meta = JSON.stringify({name: DRIVE_FILENAME, parents:['appDataFolder']});
+      const form = new FormData();
+      form.append('metadata', new Blob([meta],{type:'application/json'}));
+      form.append('file', blob);
+      const createRes = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        {method:'POST', headers:{Authorization:'Bearer '+driveToken}, body:form}
+      );
+      const createData = await createRes.json();
+      driveFileId = createData.id;
+      LS.set('drive_file_id', driveFileId);
+    }
+    const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    driveSetStatus('✓ '+driveUser+' — saved '+now, true);
+    LS.set('drive_last_sync', new Date().toISOString());
+    toast('☁ Saved to Drive ✓');
+  } catch(err){
+    console.error('Drive push error:', err);
+    driveSetStatus('❌ Sync failed — '+err.message, false);
+    // Token may have expired - request new one silently
+    if(err.message && err.message.includes('401')){
+      driveToken = null;
+      tokenClient.requestAccessToken({prompt:'none'});
+    }
+  }
+}
+
+async function drivePull(){
+  if(!driveToken){toast('Not signed in to Drive');return;}
+  if(!confirm('Load backup from Drive? This will REPLACE your current data.'))return;
+  driveSetStatus('↓ Loading from Drive…', true);
+  try{
+    // Find file
+    let fid = driveFileId;
+    if(!fid){
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id,name)`,
+        {headers:{Authorization:'Bearer '+driveToken}}
+      );
+      const sd = await searchRes.json();
+      if(!sd.files || !sd.files.length){toast('No backup found on Drive');driveSetStatus('✓ '+driveUser+' — no backup found',true);return;}
+      fid = sd.files[0].id;
+      driveFileId = fid;
+      LS.set('drive_file_id', fid);
+    }
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fid}?alt=media`,
+      {headers:{Authorization:'Bearer '+driveToken}}
+    );
+    if(!res.ok) throw new Error('Download failed: '+res.status);
+    const data = await res.json();
+    // Restore all data
+    if(data.targets){T=data.targets;LS.set('targets',T);}
+    if(data.meals){MEALS=data.meals;LS.set('meals',MEALS);}
+    if(data.fuel){FUEL=data.fuel;LS.set('fuel',FUEL);}
+    if(data.fuel_hist){FUEL_HIST=data.fuel_hist;LS.set('fuel_hist',FUEL_HIST);}
+    if(data.body){BODY=data.body;LS.set('body',BODY);}
+    if(data.sessions){SESS=data.sessions;LS.set('sessions',SESS);}
+    if(data.hiit_log){HIIT_LOG=data.hiit_log;LS.set('hiit_log',HIIT_LOG);}
+    if(data.programs){PROGRAMS=data.programs;LS.set('programs',PROGRAMS);}
+    if(data.active_prog!==undefined){ACTIVE_PROG=data.active_prog;LS.set('active_prog',ACTIVE_PROG);}
+    if(data.cex){CEX=data.cex;LS.set('cex',CEX);}
+    if(data.saved_prompts){SAVED_PROMPTS=data.saved_prompts;LS.set('saved_prompts',SAVED_PROMPTS);}
+    renderHome();renderFuel();renderPrograms();renderBody();renderSavedPrompts();
+    const ts = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date';
+    driveSetStatus('✓ '+driveUser+' — loaded backup from '+ts, true);
+    toast('☁ Drive backup restored ✓');
+  } catch(err){
+    console.error('Drive pull error:', err);
+    driveSetStatus('❌ Load failed — '+err.message, false);
+  }
+}
+
+function driveSignOut(){
+  if(driveToken) google.accounts.oauth2.revoke(driveToken, ()=>{});
+  driveToken = null;
+  driveUser = null;
+  driveFileId = null;
+  LS.set('drive_user', null);
+  LS.set('drive_file_id', null);
+  clearInterval(driveAutoTimer);
+  const bar = document.getElementById('drive-status-bar');
+  if(bar) bar.style.display = 'none';
+  const btn = document.getElementById('drive-btn');
+  if(btn){btn.textContent='☁ Drive Sync';btn.style.background='var(--s3)';btn.style.color='var(--tx2)';btn.style.borderColor='var(--bd2)';}
+  toast('Signed out of Drive');
+}
+
+function driveStartAutoSync(){
+  clearInterval(driveAutoTimer);
+  // Auto-sync every 30 minutes while app is open
+  driveAutoTimer = setInterval(()=>{
+    if(driveToken) drivePush();
+  }, 30 * 60 * 1000);
+}
+
+// Also trigger a Drive push whenever user logs something important
+function drivePushIfConnected(){
+  if(driveToken) drivePush();
+}
+
 // ═══════════════ BACKUP & RESTORE ═══════════════
 function exportBackup(){
   const data={
@@ -2060,6 +2287,8 @@ function timeNow(){return new Date().toLocaleTimeString([],{hour:'2-digit',minut
 
 // ═══════════════ INIT ═══════════════
 renderHome();renderFuel();renderSavedPrompts();
+// Init Drive after short delay to let Google GSI script load
+setTimeout(initDriveClient, 1500);
 </script>
 </body>
 </html>
