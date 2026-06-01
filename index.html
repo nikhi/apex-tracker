@@ -7,9 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="APEX">
-<title>APEX</title>
+<title>APEX Tracker v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#0a0a0b;--s1:#111113;--s2:#18181c;--s3:#222228;--s4:#2c2c34;
@@ -87,13 +86,22 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:url("data:im
 .ext{font-size:11px;color:var(--tx3);margin-top:2px}
 .exb{padding:0 12px 11px;display:none}
 .exb.open{display:block}
-.sh{display:grid;grid-template-columns:22px 1fr 1fr 26px 28px;gap:5px 7px;margin-bottom:4px}
+.sh{display:grid;grid-template-columns:22px 1fr 1fr minmax(0,1.1fr) 26px;gap:5px 7px;margin-bottom:4px}
 .sh span{font-size:9px;font-weight:600;color:var(--tx3);letter-spacing:.07em;text-transform:uppercase;text-align:center}
 .sh span:first-child{text-align:left}
-.sr{display:grid;grid-template-columns:22px 1fr 1fr 26px 28px;gap:5px 7px;align-items:center;margin-bottom:5px}
+.sh span:nth-child(4){font-size:8px}
+.sr{display:grid;grid-template-columns:22px 1fr 1fr minmax(0,1.1fr) 26px;gap:5px 7px;align-items:center;margin-bottom:5px}
 .sn{font-size:11px;color:var(--tx3);font-family:var(--fm)}
 .si{background:var(--s3);border:1px solid var(--bd2);border-radius:7px;color:var(--txt);font-family:var(--fm);font-size:13px;text-align:center;padding:7px 2px;width:100%;outline:none;transition:border-color .15s}
+.si-note{font-size:10px;color:var(--tx2);text-align:left;padding:7px 6px}
 .si:focus{border-color:var(--acc)}
+.si[type=number]::-webkit-inner-spin-button,.si[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.si[type=number]{-moz-appearance:textfield;appearance:textfield}
+.ex-rest{font-size:10px;color:var(--blu);font-family:var(--fm);margin-left:6px;font-weight:500}
+.ss-wrap{border:1px solid rgba(180,127,255,.35);border-radius:var(--r);margin:0 13px 8px;overflow:hidden;background:var(--pur2)}
+.ss-hd{font-size:9px;font-weight:700;color:var(--pur);letter-spacing:.1em;padding:7px 12px 2px;text-transform:uppercase}
+.ss-wrap .exc{margin:0;border:none;border-radius:0;border-bottom:1px solid var(--bd)}
+.ss-wrap .exc:last-child{border-bottom:none}
 .sc{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--bd2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;color:transparent}
 .sc.done{background:var(--acc);border-color:var(--acc);color:#0a0a0b}
 .tutorial-btn{width:26px;height:26px;border-radius:50%;background:var(--s3);border:1px solid var(--bd2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--tx2);flex-shrink:0;transition:all .15s}
@@ -260,8 +268,10 @@ canvas{display:block;width:100%!important;height:100%!important}
     <div class="md-t">Edit Exercise</div>
     <button class="md-x" onclick="closeModal('editEx')">×</button>
     <div class="inp-group"><label class="inp-label">Exercise name</label><input class="inp" id="ee-name" placeholder="e.g. Barbell Bench Press"></div>
+    <div class="inp-group"><label class="inp-label">Rest between sets</label><input class="inp" id="ee-rest" placeholder="e.g. 2 min"></div>
     <div class="inp-group"><label class="inp-label">Rep target</label><input class="inp" id="ee-target" placeholder="e.g. 8–10 reps · 5 sets"></div>
     <div class="inp-group"><label class="inp-label">Number of sets</label><input class="inp" id="ee-sets" type="number" placeholder="e.g. 5" min="1" max="12"></div>
+    <div class="inp-group"><label class="inp-label">Superset group (optional)</label><input class="inp" id="ee-ss" placeholder="e.g. A — same letter = paired together"></div>
     <button class="btn fw" onclick="saveEditEx()">Save changes</button>
     <button class="btn dn fw" onclick="deleteEx()">Remove this exercise</button>
   </div>
@@ -273,8 +283,10 @@ canvas{display:block;width:100%!important;height:100%!important}
     <div class="md-t">Add Exercise</div>
     <button class="md-x" onclick="closeModal('addEx')">×</button>
     <div class="inp-group"><label class="inp-label">Exercise name</label><input class="inp" id="ae-name" placeholder="e.g. Cable Fly"></div>
+    <div class="inp-group"><label class="inp-label">Rest between sets</label><input class="inp" id="ae-rest" placeholder="e.g. 2 min" value="2 min"></div>
     <div class="inp-group"><label class="inp-label">Rep target</label><input class="inp" id="ae-target" placeholder="e.g. 12–15 reps"></div>
     <div class="inp-group"><label class="inp-label">Number of sets</label><input class="inp" id="ae-sets" type="number" placeholder="e.g. 3" min="1" max="12"></div>
+    <div class="inp-group"><label class="inp-label">Superset group (optional)</label><input class="inp" id="ae-ss" placeholder="e.g. A"></div>
     <button class="btn fw" onclick="confirmAddEx()">Add to this day</button>
   </div>
 </div>
@@ -283,12 +295,20 @@ canvas{display:block;width:100%!important;height:100%!important}
 <div class="mdbg" id="md-meal" onclick="if(event.target===this)closeModal('meal')">
   <div class="md">
     <div class="md-t" id="meal-modal-title">Add Meal</div>
-    <div class="md-sub">Enter macros, calories only, or describe and let AI fill it.</div>
+    <div class="md-sub">Build from ingredients, enter macros, or use AI lookup.</div>
     <button class="md-x" onclick="closeModal('meal')">×</button>
     <div class="tabs">
-      <div class="tab active" id="tab-macro" onclick="switchMealTab('macro')">By Macros</div>
+      <div class="tab active" id="tab-build" onclick="switchMealTab('build')">Build</div>
+      <div class="tab" id="tab-macro" onclick="switchMealTab('macro')">By Macros</div>
       <div class="tab" id="tab-kcal" onclick="switchMealTab('kcal')">By Calories</div>
       <div class="tab" id="tab-ai" onclick="switchMealTab('ai')">🤖 AI</div>
+    </div>
+    <div id="pane-build">
+      <div class="inp-group"><label class="inp-label">Meal name</label><input class="inp" id="mb-name" placeholder="e.g. Overnight Oats Bowl"></div>
+      <div class="inp-group"><label class="inp-label">Ingredients (up to 6)</label><div id="mb-items"></div></div>
+      <button class="btn gh sm fw" style="margin-bottom:10px" onclick="addBuildItem()">＋ Add ingredient</button>
+      <button class="btn pu fw" onclick="calcBuildMeal()">Calculate macros</button>
+      <div id="mb-preview" style="display:none;margin:10px 0"></div>
     </div>
     <div id="pane-macro">
       <div class="inp-group"><label class="inp-label">Meal name</label><input class="inp" id="mm-name" placeholder="e.g. Post-Workout Shake"></div>
@@ -304,7 +324,14 @@ canvas{display:block;width:100%!important;height:100%!important}
     <div id="pane-kcal" style="display:none">
       <div class="inp-group"><label class="inp-label">Meal name</label><input class="inp" id="mk-name" placeholder="e.g. Restaurant meal"></div>
       <div class="inp-group"><label class="inp-label">Description</label><input class="inp" id="mk-desc" placeholder="e.g. Chicken burger and salad"></div>
+      <div class="inp-group"><label class="inp-label">Protein (g)</label><input class="inp" id="mk-p" type="number" placeholder="0" oninput="calcKcalEntry()"></div>
+      <div class="inp-group"><label class="inp-label">Carbohydrates (g)</label><input class="inp" id="mk-c" type="number" placeholder="0" oninput="calcKcalEntry()"></div>
+      <div class="inp-group"><label class="inp-label">Fat (g)</label><input class="inp" id="mk-f" type="number" placeholder="0" oninput="calcKcalEntry()"></div>
       <div class="inp-group"><label class="inp-label">Calories (kcal)</label><input class="inp" id="mk-kcal" type="number" placeholder="650"></div>
+      <div style="background:var(--s2);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--tx2)">Calories (auto from macros)</span>
+        <span style="font-family:var(--fm);font-size:15px;font-weight:600;color:var(--acc)" id="mk-kcal-preview">0 kcal</span>
+      </div>
     </div>
     <div id="pane-ai" style="display:none">
       <div class="inp-group"><label class="inp-label">Describe what you ate</label>
@@ -313,6 +340,10 @@ canvas{display:block;width:100%!important;height:100%!important}
       <button class="btn pu fw" onclick="aiLookup()">🤖 Look up nutrition</button>
       <div id="ai-result" style="display:none"></div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin:10px 0;cursor:pointer">
+      <input type="checkbox" id="mb-default" style="width:16px;height:16px;accent-color:var(--acc)">
+      Show on Quick Meals (default)
+    </label>
     <button class="btn fw" onclick="saveMealModal()" id="meal-save-btn">Save to library</button>
     <button class="btn dn fw" id="meal-del-btn" style="display:none" onclick="deleteMealFromModal()">Delete this meal</button>
   </div>
@@ -366,13 +397,15 @@ canvas{display:block;width:100%!important;height:100%!important}
 <!-- ══ MODAL: Add Program Exercise ══ -->
 <div class="mdbg" id="md-progex" onclick="if(event.target===this)closeModal('progex')">
   <div class="md">
-    <div class="md-t">Add Exercise to Day</div>
+    <div class="md-t" id="progex-title">Add Exercise to Day</div>
     <button class="md-x" onclick="closeModal('progex')">×</button>
     <div class="inp-group"><label class="inp-label">Exercise name</label><input class="inp" id="pex-name" placeholder="e.g. Hack Squat"></div>
-    <div class="inp-group"><label class="inp-label">Rep target</label><input class="inp" id="pex-target" placeholder="e.g. 6–8 reps"></div>
+    <div class="inp-group"><label class="inp-label">Rest between sets</label><input class="inp" id="pex-rest" placeholder="e.g. 2 min" value="2 min"></div>
+    <div class="inp-group"><label class="inp-label">Rep target</label><input class="inp" id="pex-target" placeholder="e.g. 6–8 reps or 10+5+5 myo"></div>
     <div class="inp-group"><label class="inp-label">Sets</label><input class="inp" id="pex-sets" type="number" placeholder="e.g. 5" min="1" max="12"></div>
     <div class="inp-group"><label class="inp-label">Default weight (kg or bw)</label><input class="inp" id="pex-weight" placeholder="e.g. 80 or bw"></div>
-    <button class="btn fw" onclick="confirmProgEx()">Add Exercise</button>
+    <div class="inp-group"><label class="inp-label">Superset group (optional)</label><input class="inp" id="pex-ss" placeholder="e.g. A — same group = superset pair"></div>
+    <button class="btn fw" id="progex-save-btn" onclick="confirmProgEx()">Add Exercise</button>
   </div>
 </div>
 
@@ -464,10 +497,18 @@ canvas{display:block;width:100%!important;height:100%!important}
   <div id="fuel-panel-today">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="clb" style="margin-bottom:0">Meal Library</div>
-        <button class="btn sm" onclick="openAddMeal()">＋ New meal</button>
+        <div class="clb" style="margin-bottom:0">Quick Meals</div>
+        <button class="btn sm" onclick="openAddMeal()">＋ Build meal</button>
       </div>
-      <div id="meal-library"></div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Default meals shown here for one-tap logging.</div>
+      <div id="meal-quick"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="clb" style="margin-bottom:0">Meal Database</div>
+        <button class="btn gh sm" onclick="toggleMealDb()"><span id="meal-db-toggle">Show</span></button>
+      </div>
+      <div id="meal-library" style="display:none"></div>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -538,7 +579,7 @@ canvas{display:block;width:100%!important;height:100%!important}
     <div><div class="hd-t">TRAINING <em>PROGRAMS</em></div><div class="hd-s">Templates for your cycles</div></div>
     <button class="btn sm" onclick="openNewProgram()">＋ New</button>
   </div>
-  <div style="padding:0 13px;margin-bottom:6px;font-size:12px;color:var(--tx3)">Select a program to apply it as your active training schedule.</div>
+  <div style="padding:0 13px;margin-bottom:6px;font-size:12px;color:var(--tx3)">Select a program to apply it as your active training schedule. All programs are fully editable.</div>
   <div id="prog-list"></div>
 </div>
 
@@ -546,20 +587,10 @@ canvas{display:block;width:100%!important;height:100%!important}
 <div id="pg-body" class="pg">
   <div class="hdr">
     <div><div class="hd-t">BODY <em>STATS</em></div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+    <div style="display:flex;gap:6px">
       <button class="btn bl sm" onclick="exportBackup()">⬇ Backup</button>
       <button class="btn gh sm" onclick="document.getElementById('import-file').click()">⬆ Restore</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(event)">
-      <button class="btn sm" id="drive-btn" onclick="driveSync()" style="background:var(--s3);color:var(--tx2);border:1px solid var(--bd2)">☁ Drive Sync</button>
-    </div>
-  </div>
-  <!-- Drive status bar -->
-  <div id="drive-status-bar" style="display:none;margin:0 13px 8px;padding:8px 12px;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--rs);font-size:11px;color:var(--tx2);display:flex;justify-content:space-between;align-items:center">
-    <span id="drive-status-text">Not connected</span>
-    <div style="display:flex;gap:6px">
-      <button class="btn sm" style="font-size:10px;padding:3px 8px" onclick="drivePush()">↑ Save now</button>
-      <button class="btn gh sm" style="font-size:10px;padding:3px 8px" onclick="drivePull()">↓ Load from Drive</button>
-      <button class="btn dn sm" style="font-size:10px;padding:3px 8px" onclick="driveSignOut()">Sign out</button>
     </div>
   </div>
   <div class="card">
@@ -583,8 +614,9 @@ canvas{display:block;width:100%!important;height:100%!important}
 <!-- ════════ APEX AI PAGE ════════ -->
 <div id="pg-ai" class="pg chat-page">
   <div class="chat-hdr">
-    <div><div class="hd-t">APEX <em>AI</em></div><div class="hd-s">Elite coach — powered by Claude</div></div>
+    <div><div class="hd-t">APEX <em>AI</em></div><div class="hd-s">Elite coach — Gemini 1.5 Flash (free tier)</div></div>
     <div style="display:flex;gap:6px">
+      <button class="chat-act-btn" onclick="openApiKey()">🔑 API key</button>
       <button class="chat-act-btn" onclick="loadContext()">📊 Load data</button>
       <button class="chat-act-btn" onclick="clearChat()">🗑 Clear</button>
     </div>
@@ -637,6 +669,21 @@ canvas{display:block;width:100%!important;height:100%!important}
   </div>
 </div>
 
+<!-- ══ MODAL: API Key (Google Gemini) ══ -->
+<div class="mdbg" id="md-apikey" onclick="if(event.target===this)closeModal('apikey')">
+  <div class="md">
+    <div class="md-t">Gemini API Key</div>
+    <div class="md-sub">Free tier at aistudio.google.com — stored locally on this device.</div>
+    <button class="md-x" onclick="closeModal('apikey')">×</button>
+    <div class="inp-group">
+      <label class="inp-label">Google Gemini API key</label>
+      <input class="inp" id="ai-key" placeholder="AIza..." autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <button class="btn fw" onclick="saveApiKey()">Save key</button>
+    <button class="btn gh fw" onclick="clearApiKey()">Remove key</button>
+  </div>
+</div>
+
 <nav class="nav">
   <div class="ni active" data-pg="home" onclick="navTo('home',this)"><div class="ni-ic">🏠</div><div class="ni-lb">Home</div></div>
   <div class="ni" data-pg="fuel" onclick="navTo('fuel',this)"><div class="ni-ic">🥗</div><div class="ni-lb">Fuel</div></div>
@@ -656,19 +703,86 @@ const LS={
 
 let T=LS.get('targets',{protein:150,carbs:200,fat:44,kcal:1900,currentBF:15.5,startBF:15.5,targetBF:11,weeks:16});
 const TODAY=new Date().toISOString().slice(0,10);
-let FUEL=LS.get('fuel',{log:[],p:0,c:0,f:0,date:''});
-if(FUEL.date!==TODAY){FUEL={log:[],p:0,c:0,f:0,date:TODAY};LS.set('fuel',FUEL);}
+let FUEL=LS.get('fuel',{log:[],p:0,c:0,f:0,k:0,date:''});
+if(FUEL.date!==TODAY){FUEL={log:[],p:0,c:0,f:0,k:0,date:TODAY};LS.set('fuel',FUEL);}
 let FUEL_HIST=LS.get('fuel_hist',{}); // {date: {log,p,c,f}}
 let BODY=LS.get('body',{entries:[],currentBW:null});
 let SESS=LS.get('sessions',[]);
 let HIIT_LOG=LS.get('hiit_log',[]); // [{date,type,dur,notes,kcal}]
 let MEALS=LS.get('meals',[
-  {id:'m0',n:'Pre-Workout Shake',d:'1.5 bananas + Whey 38g + Creatine 5g',p:36,c:55,f:3,k:395},
-  {id:'m1',n:'Overnight Buckwheat Bowl',d:'Buckwheat 70g + Skyr 150g + Whey 25g + Banana',p:50,c:86,f:6,k:598},
-  {id:'m2',n:'Lunch — Chapati + Dal',d:'Protein chapati 1.5 + Cottage cheese + Toor dal',p:32,c:58,f:8,k:440},
-  {id:'m3',n:'Evening Shake',d:'Whey 20g + Milk 200ml + Cocoa',p:24,c:14,f:5,k:197},
-  {id:'m4',n:'Dinner — Chicken + Veg',d:'Chicken 150g + Broccoli 250g + Almonds 15g',p:42,c:14,f:12,k:328},
+  {id:'m0',n:'Pre-Workout Shake',d:'1.5 bananas + Whey 38g + Creatine 5g',p:36,c:55,f:3,k:395,def:true},
+  {id:'m1',n:'Overnight Buckwheat Bowl',d:'Buckwheat 70g + Skyr 150g + Whey 25g + Banana',p:50,c:86,f:6,k:598,def:true},
+  {id:'m2',n:'Lunch — Chapati + Dal',d:'Protein chapati 1.5 + Cottage cheese + Toor dal',p:32,c:58,f:8,k:440,def:true},
+  {id:'m3',n:'Evening Shake',d:'Whey 20g + Milk 200ml + Cocoa',p:24,c:14,f:5,k:197,def:true},
+  {id:'m4',n:'Dinner — Chicken + Veg',d:'Chicken 150g + Broccoli 250g + Almonds 15g',p:42,c:14,f:12,k:328,def:true},
 ]);
+
+// ═══════════════ AI (Google Gemini) ═══════════════
+let GEMINI_KEY=LS.get('gemini_key',LS.get('anthropic_key',''));
+
+function openApiKey(){
+  const el=document.getElementById('ai-key');
+  if(el)el.value=GEMINI_KEY||'';
+  openModal('apikey');
+}
+function saveApiKey(){
+  const key=(document.getElementById('ai-key')?.value||'').trim();
+  if(!key){toast('Paste your Gemini API key');return;}
+  GEMINI_KEY=key;
+  LS.set('gemini_key',GEMINI_KEY);
+  closeModal('apikey');
+  toast('Gemini key saved ✓');
+}
+function clearApiKey(){
+  GEMINI_KEY='';
+  LS.set('gemini_key','');
+  const el=document.getElementById('ai-key');if(el)el.value='';
+  toast('API key removed');
+}
+
+// Free-tier models only (1.5 Flash — avoid 2.0/2.5 which may have zero free quota)
+const GEMINI_MODELS=[
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-002',
+  'gemini-1.5-flash-001',
+];
+
+async function geminiGenerate({system,messages,maxTokens=1000}){
+  if(!GEMINI_KEY)throw new Error('NO_API_KEY');
+  const contents=(messages||[]).map(m=>({
+    role:m.role==='assistant'?'model':'user',
+    parts:[{text:m.content}]
+  }));
+  const body={
+    systemInstruction:system?{parts:[{text:system}]}:undefined,
+    contents,
+    generationConfig:{maxOutputTokens:maxTokens,temperature:0.6}
+  };
+  let lastErr='';
+  for(const model of GEMINI_MODELS){
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_KEY)}`;
+    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    let data=null;
+    try{data=await resp.json();}catch{data=null;}
+    if(!resp.ok){
+      const msg=data?.error?.message||(`HTTP ${resp.status}`);
+      lastErr=msg;
+      if(resp.status===404||/not found|not supported/i.test(msg))continue;
+      if(resp.status===429||/quota|rate limit|resource exhausted/i.test(msg))continue;
+      throw new Error(msg);
+    }
+    const text=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+    if(!text){lastErr='Empty response from Gemini';continue;}
+    return text;
+  }
+  throw new Error(lastErr||'No Gemini 1.5 Flash model available for your API key');
+}
+
+async function geminiJson({system,prompt,maxTokens=600}){
+  const text=await geminiGenerate({system,messages:[{role:'user',content:prompt}],maxTokens});
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
+}
 
 // Programs — user-defined training templates
 let PROGRAMS=LS.get('programs',[
@@ -687,7 +801,7 @@ let PROGRAMS=LS.get('programs',[
         {id:'ct0',n:'Incline Dumbbell Press',t:'6–10 reps · 5 sets',s:5,lw:[27.5,27.5,27.5,25,25]},
         {id:'ct1',n:'Barbell Skull Crusher',t:'6–10 reps · 5 sets',s:5,lw:[10,10,10,10,10]},
         {id:'ct2',n:'Flat Barbell Bench Press',t:'6–10 reps · 5 sets',s:5,lw:[27.5,25,25,25,25]},
-        {id:'ct3',n:'Overhead Extension',t:'6–10 reps · 5 sets',s:5,lw:[23.5,21.5,21.5,18.75,18.75]},,
+        {id:'ct3',n:'Overhead Extension',t:'6–10 reps · 5 sets',s:5,lw:[23.5,21.5,21.5,18.75,18.75]},
         {id:'ct4',n:'Dips',t:'6–10 reps · 4 sets',s:4,lw:['bw','bw','bw','bw']},
         {id:'ct5',n:'Weighted Push-Ups',t:'6–10 reps · 4 sets',s:4,lw:['bw','bw','bw','bw']},
         {id:'ct6',n:'Reverse Crunch',t:'6–10 reps · 3 sets',s:3,lw:[15,15,15]},
@@ -974,6 +1088,223 @@ let PROGRAMS=LS.get('programs',[
     }
   },
 ]);
+
+const POPULAR_TEMPLATES=[
+  {id:'tpl_ppl6',name:'PPL — 6 Day Hypertrophy',type:'Bulk',weeks:12,notes:'Push / Pull / Legs ×2. Most popular hypertrophy split.',
+    days:{
+      0:{name:'REST',type:'REST',col:'a',ex:[]},
+      1:{name:'Push',type:'Strength',col:'b',ex:[
+        {id:'ppl_p1',n:'Barbell Bench Press',t:'4×6–8',s:4,lw:[60,60,60,60],rest:'2 min'},
+        {id:'ppl_p2',n:'Overhead Press',t:'3×8–10',s:3,lw:[40,40,40],rest:'2 min'},
+        {id:'ppl_p3',n:'Incline DB Press',t:'3×10–12',s:3,lw:[25,25,25],rest:'90 sec',ss:'A'},
+        {id:'ppl_p4',n:'Cable Lateral Raise',t:'3×12–15',s:3,lw:[7.5,7.5,7.5],rest:'60 sec',ss:'A'},
+        {id:'ppl_p5',n:'Tricep Pushdown',t:'3×12–15',s:3,lw:[25,25,25],rest:'60 sec',ss:'B'},
+        {id:'ppl_p6',n:'Overhead Extension',t:'3×12–15',s:3,lw:[20,20,20],rest:'60 sec',ss:'B'},
+      ]},
+      2:{name:'Pull',type:'Strength',col:'b',ex:[
+        {id:'ppl_u1',n:'Weighted Pull-Ups',t:'4×6–10',s:4,lw:[10,10,10,10],rest:'2 min'},
+        {id:'ppl_u2',n:'Barbell Row',t:'4×8–10',s:4,lw:[60,60,60,60],rest:'2 min'},
+        {id:'ppl_u3',n:'Lat Pulldown',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+        {id:'ppl_u4',n:'Face Pull',t:'3×15–20',s:3,lw:[15,15,15],rest:'60 sec',ss:'A'},
+        {id:'ppl_u5',n:'Barbell Curl',t:'3×10–12',s:3,lw:[20,20,20],rest:'60 sec',ss:'B'},
+        {id:'ppl_u6',n:'Hammer Curl',t:'3×10–12',s:3,lw:[15,15,15],rest:'60 sec',ss:'B'},
+      ]},
+      3:{name:'Legs',type:'Strength',col:'b',ex:[
+        {id:'ppl_l1',n:'Barbell Back Squat',t:'4×6–8',s:4,lw:[80,80,80,80],rest:'3 min'},
+        {id:'ppl_l2',n:'Romanian Deadlift',t:'3×8–10',s:3,lw:[70,70,70],rest:'2 min'},
+        {id:'ppl_l3',n:'Leg Press',t:'3×10–12',s:3,lw:[120,120,120],rest:'90 sec',ss:'A'},
+        {id:'ppl_l4',n:'Leg Curl',t:'3×12–15',s:3,lw:[40,40,40],rest:'60 sec',ss:'A'},
+        {id:'ppl_l5',n:'Calf Raise',t:'4×12–15',s:4,lw:[60,60,60,60],rest:'60 sec'},
+      ]},
+      4:{name:'Push (Vol)',type:'Light',col:'g',ex:[
+        {id:'ppl_p7',n:'Incline Barbell Press',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec'},
+        {id:'ppl_p8',n:'Cable Fly',t:'3×12–15',s:3,lw:[12,12,12],rest:'60 sec',ss:'A'},
+        {id:'ppl_p9',n:'Lateral Raise',t:'3×15',s:3,lw:[7,7,7],rest:'60 sec',ss:'A'},
+        {id:'ppl_p10',n:'Dips',t:'3×10–15',s:3,lw:['bw','bw','bw'],rest:'90 sec'},
+      ]},
+      5:{name:'Pull (Vol)',type:'Light',col:'g',ex:[
+        {id:'ppl_u7',n:'Chest-Supported Row',t:'3×10–12',s:3,lw:[25,25,25],rest:'90 sec'},
+        {id:'ppl_u8',n:'Cable Row',t:'3×12–15',s:3,lw:[45,45,45],rest:'60 sec',ss:'A'},
+        {id:'ppl_u9',n:'Rear Delt Fly',t:'3×15',s:3,lw:[8,8,8],rest:'60 sec',ss:'A'},
+        {id:'ppl_u10',n:'Incline Curl',t:'3×12–15',s:3,lw:[10,10,10],rest:'60 sec'},
+      ]},
+      6:{name:'Legs (Vol)',type:'Light',col:'g',ex:[
+        {id:'ppl_l6',n:'Hack Squat',t:'3×10–12',s:3,lw:[80,80,80],rest:'2 min'},
+        {id:'ppl_l7',n:'Bulgarian Split Squat',t:'3×10/leg',s:3,lw:[15,15,15],rest:'90 sec',ss:'A'},
+        {id:'ppl_l8',n:'Leg Extension',t:'3×12–15',s:3,lw:[35,35,35],rest:'60 sec',ss:'A'},
+        {id:'ppl_l9',n:'Hip Thrust',t:'3×10–12',s:3,lw:[80,80,80],rest:'90 sec'},
+      ]},
+    }},
+  {id:'tpl_ul4',name:'Upper / Lower — 4 Day',type:'Bulk',weeks:12,notes:'4-day upper/lower. High frequency, great for hypertrophy.',
+    days:{
+      0:{name:'REST',type:'REST',col:'a',ex:[]},
+      1:{name:'Upper A',type:'Strength',col:'b',ex:[
+        {id:'ul_u1',n:'Bench Press',t:'4×5–8',s:4,lw:[60,60,60,60],rest:'2 min'},
+        {id:'ul_u2',n:'Barbell Row',t:'4×6–8',s:4,lw:[60,60,60,60],rest:'2 min'},
+        {id:'ul_u3',n:'OHP',t:'3×8–10',s:3,lw:[35,35,35],rest:'2 min',ss:'A'},
+        {id:'ul_u4',n:'Lat Pulldown',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+        {id:'ul_u5',n:'Lateral Raise',t:'3×12–15',s:3,lw:[7,7,7],rest:'60 sec'},
+        {id:'ul_u6',n:'Tricep + Curl',t:'3×12 each',s:3,lw:[20,20,20],rest:'60 sec',ss:'B'},
+      ]},
+      2:{name:'Lower A',type:'Strength',col:'b',ex:[
+        {id:'ul_l1',n:'Squat',t:'4×5–8',s:4,lw:[80,80,80,80],rest:'3 min'},
+        {id:'ul_l2',n:'RDL',t:'3×8–10',s:3,lw:[70,70,70],rest:'2 min'},
+        {id:'ul_l3',n:'Leg Press',t:'3×10–12',s:3,lw:[120,120,120],rest:'90 sec',ss:'A'},
+        {id:'ul_l4',n:'Leg Curl',t:'3×12–15',s:3,lw:[40,40,40],rest:'60 sec',ss:'A'},
+        {id:'ul_l5',n:'Calf Raise',t:'4×15',s:4,lw:[60,60,60,60],rest:'60 sec'},
+      ]},
+      3:{name:'REST',type:'REST',col:'a',ex:[]},
+      4:{name:'Upper B',type:'Light',col:'g',ex:[
+        {id:'ul_u7',n:'Incline DB Press',t:'3×10–12',s:3,lw:[25,25,25],rest:'90 sec'},
+        {id:'ul_u8',n:'Pull-Ups',t:'3×8–12',s:3,lw:['bw','bw','bw'],rest:'90 sec'},
+        {id:'ul_u9',n:'Cable Fly + Face Pull',t:'3×12–15',s:3,lw:[12,12,12],rest:'60 sec',ss:'A'},
+        {id:'ul_u10',n:'DB Shoulder Press',t:'3×10–12',s:3,lw:[15,15,15],rest:'90 sec'},
+      ]},
+      5:{name:'Lower B',type:'Light',col:'g',ex:[
+        {id:'ul_l6',n:'Front Squat / Goblet',t:'3×10–12',s:3,lw:[40,40,40],rest:'2 min'},
+        {id:'ul_l7',n:'Hip Thrust',t:'3×10–12',s:3,lw:[80,80,80],rest:'90 sec',ss:'A'},
+        {id:'ul_l8',n:'Walking Lunge',t:'3×10/leg',s:3,lw:[15,15,15],rest:'90 sec',ss:'A'},
+        {id:'ul_l9',n:'Leg Extension',t:'3×15',s:3,lw:[30,30,30],rest:'60 sec'},
+      ]},
+      6:{name:'REST',type:'REST',col:'a',ex:[]},
+    }},
+  {id:'tpl_bro5',name:'Bro Split — 5 Day',type:'Bulk',weeks:8,notes:'Chest · Back · Legs · Shoulders · Arms. Classic bodybuilding.',
+    days:{
+      0:{name:'Chest',type:'Strength',col:'b',ex:[
+        {id:'bro_c1',n:'Flat Bench',t:'4×6–10',s:4,lw:[60,60,60,60],rest:'2 min'},
+        {id:'bro_c2',n:'Incline DB',t:'4×8–12',s:4,lw:[25,25,25,25],rest:'90 sec',ss:'A'},
+        {id:'bro_c3',n:'Cable Fly',t:'3×12–15',s:3,lw:[12,12,12],rest:'60 sec',ss:'A'},
+        {id:'bro_c4',n:'Dips',t:'3×10–15',s:3,lw:['bw','bw','bw'],rest:'90 sec'},
+      ]},
+      1:{name:'Back',type:'Strength',col:'b',ex:[
+        {id:'bro_b1',n:'Deadlift',t:'4×5–8',s:4,lw:[80,80,80,80],rest:'3 min'},
+        {id:'bro_b2',n:'Pull-Ups',t:'4×6–10',s:4,lw:[10,10,10,10],rest:'2 min'},
+        {id:'bro_b3',n:'T-Bar Row',t:'3×8–12',s:3,lw:[30,30,30],rest:'90 sec',ss:'A'},
+        {id:'bro_b4',n:'Lat Pulldown',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+      ]},
+      2:{name:'Legs',type:'Strength',col:'b',ex:[
+        {id:'bro_l1',n:'Squat',t:'4×6–8',s:4,lw:[80,80,80,80],rest:'3 min'},
+        {id:'bro_l2',n:'Leg Press',t:'4×10–12',s:4,lw:[120,120,120,120],rest:'90 sec',ss:'A'},
+        {id:'bro_l3',n:'Leg Curl',t:'3×12–15',s:3,lw:[40,40,40],rest:'60 sec',ss:'A'},
+        {id:'bro_l4',n:'Calf Raise',t:'4×15',s:4,lw:[60,60,60,60],rest:'60 sec'},
+      ]},
+      3:{name:'Shoulders',type:'Strength',col:'b',ex:[
+        {id:'bro_s1',n:'OHP',t:'4×6–10',s:4,lw:[40,40,40,40],rest:'2 min'},
+        {id:'bro_s2',n:'Lateral Raise',t:'4×12–15',s:4,lw:[7,7,7,7],rest:'60 sec',ss:'A'},
+        {id:'bro_s3',n:'Rear Delt Fly',t:'3×15',s:3,lw:[8,8,8],rest:'60 sec',ss:'A'},
+        {id:'bro_s4',n:'Shrugs',t:'3×12–15',s:3,lw:[40,40,40],rest:'90 sec'},
+      ]},
+      4:{name:'Arms',type:'Light',col:'g',ex:[
+        {id:'bro_a1',n:'Close-Grip Bench',t:'3×8–12',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+        {id:'bro_a2',n:'Barbell Curl',t:'3×8–12',s:3,lw:[20,20,20],rest:'60 sec',ss:'A'},
+        {id:'bro_a3',n:'Skull Crusher',t:'3×10–12',s:3,lw:[20,20,20],rest:'60 sec',ss:'B'},
+        {id:'bro_a4',n:'Hammer Curl',t:'3×10–12',s:3,lw:[15,15,15],rest:'60 sec',ss:'B'},
+      ]},
+      5:{name:'REST',type:'REST',col:'a',ex:[]},
+      6:{name:'REST',type:'REST',col:'a',ex:[]},
+    }},
+  {id:'tpl_arnold',name:'Arnold Split — 6 Day',type:'Bulk',weeks:10,notes:'Chest+Back · Shoulders+Arms · Legs ×2. High volume hypertrophy.',
+    days:{
+      0:{name:'Chest + Back',type:'Strength',col:'b',ex:[
+        {id:'ar_c1',n:'Bench Press',t:'4×6–10',s:4,lw:[60,60,60,60],rest:'2 min',ss:'A'},
+        {id:'ar_b1',n:'Pull-Ups',t:'4×6–10',s:4,lw:[10,10,10,10],rest:'2 min',ss:'A'},
+        {id:'ar_c2',n:'Incline DB',t:'3×10–12',s:3,lw:[25,25,25],rest:'90 sec',ss:'B'},
+        {id:'ar_b2',n:'Cable Row',t:'3×10–12',s:3,lw:[45,45,45],rest:'90 sec',ss:'B'},
+        {id:'ar_c3',n:'Cable Fly',t:'3×12–15',s:3,lw:[12,12,12],rest:'60 sec'},
+      ]},
+      1:{name:'Shoulders + Arms',type:'Strength',col:'b',ex:[
+        {id:'ar_s1',n:'OHP',t:'4×8–10',s:4,lw:[40,40,40,40],rest:'2 min',ss:'A'},
+        {id:'ar_a1',n:'Barbell Curl',t:'3×10–12',s:3,lw:[20,20,20],rest:'60 sec',ss:'A'},
+        {id:'ar_s2',n:'Lateral Raise',t:'4×12–15',s:4,lw:[7,7,7,7],rest:'60 sec',ss:'B'},
+        {id:'ar_a2',n:'Tricep Pushdown',t:'3×12–15',s:3,lw:[25,25,25],rest:'60 sec',ss:'B'},
+      ]},
+      2:{name:'Legs',type:'Strength',col:'b',ex:[
+        {id:'ar_l1',n:'Squat',t:'4×6–8',s:4,lw:[80,80,80,80],rest:'3 min'},
+        {id:'ar_l2',n:'RDL',t:'3×8–10',s:3,lw:[70,70,70],rest:'2 min',ss:'A'},
+        {id:'ar_l3',n:'Leg Curl',t:'3×12–15',s:3,lw:[40,40,40],rest:'60 sec',ss:'A'},
+        {id:'ar_l4',n:'Calf Raise',t:'4×15',s:4,lw:[60,60,60,60],rest:'60 sec'},
+      ]},
+      3:{name:'Chest + Back',type:'Light',col:'g',ex:[
+        {id:'ar_c4',n:'Incline Barbell',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+        {id:'ar_b3',n:'Lat Pulldown',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+        {id:'ar_c5',n:'Dips',t:'3×10–15',s:3,lw:['bw','bw','bw'],rest:'90 sec'},
+      ]},
+      4:{name:'Shoulders + Arms',type:'Light',col:'g',ex:[
+        {id:'ar_s3',n:'DB Shoulder Press',t:'3×10–12',s:3,lw:[15,15,15],rest:'90 sec',ss:'A'},
+        {id:'ar_a3',n:'Incline Curl',t:'3×12–15',s:3,lw:[10,10,10],rest:'60 sec',ss:'A'},
+        {id:'ar_a4',n:'Overhead Extension',t:'3×12–15',s:3,lw:[20,20,20],rest:'60 sec'},
+      ]},
+      5:{name:'Legs',type:'Light',col:'g',ex:[
+        {id:'ar_l5',n:'Leg Press',t:'4×12–15',s:4,lw:[120,120,120,120],rest:'90 sec',ss:'A'},
+        {id:'ar_l6',n:'Leg Extension',t:'3×15',s:3,lw:[30,30,30],rest:'60 sec',ss:'A'},
+        {id:'ar_l7',n:'Hip Thrust',t:'3×10–12',s:3,lw:[80,80,80],rest:'90 sec'},
+      ]},
+      6:{name:'REST',type:'REST',col:'a',ex:[]},
+    }},
+  {id:'tpl_fb3',name:'Full Body — 3 Day',type:'Bulk',weeks:12,notes:'Mon / Wed / Fri full body. Best for beginners or busy schedules.',
+    days:{
+      0:{name:'REST',type:'REST',col:'a',ex:[]},
+      1:{name:'Full Body A',type:'Strength',col:'b',ex:[
+        {id:'fb_a1',n:'Squat',t:'3×6–8',s:3,lw:[60,60,60],rest:'2 min'},
+        {id:'fb_a2',n:'Bench Press',t:'3×6–8',s:3,lw:[50,50,50],rest:'2 min',ss:'A'},
+        {id:'fb_a3',n:'Barbell Row',t:'3×8–10',s:3,lw:[50,50,50],rest:'90 sec',ss:'A'},
+        {id:'fb_a4',n:'OHP',t:'3×8–10',s:3,lw:[30,30,30],rest:'90 sec'},
+        {id:'fb_a5',n:'Plank',t:'3×45 sec',s:3,lw:['bw','bw','bw'],rest:'60 sec'},
+      ]},
+      2:{name:'REST',type:'REST',col:'a',ex:[]},
+      3:{name:'Full Body B',type:'Strength',col:'b',ex:[
+        {id:'fb_b1',n:'Deadlift',t:'3×5–8',s:3,lw:[70,70,70],rest:'3 min'},
+        {id:'fb_b2',n:'Incline DB Press',t:'3×8–12',s:3,lw:[22,22,22],rest:'90 sec',ss:'A'},
+        {id:'fb_b3',n:'Pull-Ups',t:'3×6–10',s:3,lw:['bw','bw','bw'],rest:'90 sec',ss:'A'},
+        {id:'fb_b4',n:'Leg Curl',t:'3×12–15',s:3,lw:[35,35,35],rest:'60 sec'},
+        {id:'fb_b5',n:'Lateral Raise',t:'3×12–15',s:3,lw:[7,7,7],rest:'60 sec'},
+      ]},
+      4:{name:'REST',type:'REST',col:'a',ex:[]},
+      5:{name:'Full Body C',type:'Light',col:'g',ex:[
+        {id:'fb_c1',n:'Front Squat / Goblet',t:'3×10–12',s:3,lw:[40,40,40],rest:'2 min'},
+        {id:'fb_c2',n:'Cable Row',t:'3×10–12',s:3,lw:[45,45,45],rest:'90 sec',ss:'A'},
+        {id:'fb_c3',n:'Dips',t:'3×10–15',s:3,lw:['bw','bw','bw'],rest:'90 sec',ss:'A'},
+        {id:'fb_c4',n:'Leg Press',t:'3×12–15',s:3,lw:[100,100,100],rest:'90 sec'},
+        {id:'fb_c5',n:'Face Pull',t:'3×15',s:3,lw:[15,15,15],rest:'60 sec'},
+      ]},
+      6:{name:'REST',type:'REST',col:'a',ex:[]},
+    }},
+  {id:'tpl_ulppl',name:'ULPPL — 5 Day Hybrid',type:'Bulk',weeks:12,notes:'Upper · Lower · Push · Pull · Legs. Best of both worlds.',
+    days:{
+      0:{name:'REST',type:'REST',col:'a',ex:[]},
+      1:{name:'Upper',type:'Strength',col:'b',ex:[
+        {id:'ulp_u1',n:'Bench Press',t:'4×5–8',s:4,lw:[60,60,60,60],rest:'2 min'},
+        {id:'ulp_u2',n:'Barbell Row',t:'4×6–8',s:4,lw:[60,60,60,60],rest:'2 min',ss:'A'},
+        {id:'ulp_u3',n:'OHP',t:'3×8–10',s:3,lw:[35,35,35],rest:'90 sec',ss:'A'},
+        {id:'ulp_u4',n:'Lat Pulldown',t:'3×10–12',s:3,lw:[50,50,50],rest:'90 sec'},
+      ]},
+      2:{name:'Lower',type:'Strength',col:'b',ex:[
+        {id:'ulp_l1',n:'Squat',t:'4×5–8',s:4,lw:[80,80,80,80],rest:'3 min'},
+        {id:'ulp_l2',n:'RDL',t:'3×8–10',s:3,lw:[70,70,70],rest:'2 min',ss:'A'},
+        {id:'ulp_l3',n:'Leg Curl',t:'3×12–15',s:3,lw:[40,40,40],rest:'60 sec',ss:'A'},
+        {id:'ulp_l4',n:'Calf Raise',t:'3×15',s:3,lw:[60,60,60],rest:'60 sec'},
+      ]},
+      3:{name:'Push',type:'Light',col:'g',ex:[
+        {id:'ulp_p1',n:'Incline DB Press',t:'3×10–12',s:3,lw:[25,25,25],rest:'90 sec',ss:'A'},
+        {id:'ulp_p2',n:'Lateral Raise',t:'3×12–15',s:3,lw:[7,7,7],rest:'60 sec',ss:'A'},
+        {id:'ulp_p3',n:'Tricep Pushdown',t:'3×12–15',s:3,lw:[25,25,25],rest:'60 sec',ss:'B'},
+        {id:'ulp_p4',n:'Overhead Extension',t:'3×12–15',s:3,lw:[20,20,20],rest:'60 sec',ss:'B'},
+      ]},
+      4:{name:'Pull',type:'Light',col:'g',ex:[
+        {id:'ulp_u5',n:'Pull-Ups',t:'3×8–12',s:3,lw:['bw','bw','bw'],rest:'90 sec'},
+        {id:'ulp_u6',n:'Cable Row',t:'3×10–12',s:3,lw:[45,45,45],rest:'90 sec',ss:'A'},
+        {id:'ulp_u7',n:'Face Pull',t:'3×15',s:3,lw:[15,15,15],rest:'60 sec',ss:'A'},
+        {id:'ulp_u8',n:'Barbell Curl',t:'3×10–12',s:3,lw:[20,20,20],rest:'60 sec'},
+      ]},
+      5:{name:'Legs',type:'Light',col:'g',ex:[
+        {id:'ulp_l5',n:'Leg Press',t:'4×12–15',s:4,lw:[120,120,120,120],rest:'90 sec',ss:'A'},
+        {id:'ulp_l6',n:'Leg Extension',t:'3×15',s:3,lw:[30,30,30],rest:'60 sec',ss:'A'},
+        {id:'ulp_l7',n:'Hip Thrust',t:'3×10–12',s:3,lw:[80,80,80],rest:'90 sec'},
+      ]},
+      6:{name:'REST',type:'REST',col:'a',ex:[]},
+    }},
+];
+
 let ACTIVE_PROG=LS.get('active_prog',null); // program id or null = use builtin
 
 let CEX=LS.get('cex',{});
@@ -987,17 +1318,49 @@ function getActivePlan(){
 
 function getDayEx(day){
   const plan=getActivePlan();
-  const base=(plan[day]?.ex||[]).map(e=>({...e}));
+  const base=(plan[day]?.ex||[]).map(e=>({rest:'2 min',...e}));
   const ov=CEX[day]||[];
   const result=[];
   for(const ex of base){
     if(ov.find(o=>o.id===ex.id&&o.act==='del'))continue;
     const ed=ov.find(o=>o.id===ex.id&&o.act==='edit');
-    result.push(ed?{...ex,...ed.data}:ex);
+    result.push(ed?{...ex,...ed.data,rest:ed.data.rest||ex.rest||'2 min'}:ex);
   }
-  for(const o of ov){if(o.act==='add')result.push({...o.data});}
+  for(const o of ov){if(o.act==='add')result.push({rest:'2 min',...o.data});}
   return result;
 }
+
+function groupExBySuperset(exs){
+  const ssMap={};
+  exs.forEach((ex,ei)=>{
+    const key=normSs(ex.ss);
+    if(key){
+      if(!ssMap[key])ssMap[key]=[];
+      ssMap[key].push({ex,ei});
+    }
+  });
+  const rendered=new Set();
+  const groups=[];
+  exs.forEach((ex,ei)=>{
+    const key=normSs(ex.ss);
+    if(key&&ssMap[key]?.length>1){
+      if(!rendered.has(key)){
+        groups.push({ss:key,items:ssMap[key].sort((a,b)=>a.ei-b.ei)});
+        rendered.add(key);
+      }
+    }else{
+      groups.push({ss:null,items:[{ex,ei}]});
+    }
+  });
+  return groups;
+}
+
+function normSs(v){
+  const s=String(v??'').trim().toUpperCase();
+  return s||null;
+}
+
+function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 // ═══════════════ NAVIGATION ═══════════════
 function navTo(pg,el){
@@ -1075,7 +1438,59 @@ function saveTargets(){
 }
 
 // ═══════════════ FUEL ═══════════════
-let mealEditId=null,mealTab='macro',fuelTab='today',calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+let mealEditId=null,mealTab='build',fuelTab='today',calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),mealDbOpen=false;
+let buildItems=[{food:'',qty:'',unit:'g'}];
+let buildCalcResult=null;
+
+const FOOD_DB={
+  'rolled oats':{p:13.2,c:67.7,f:6.5,pieceG:0},
+  'oats':{p:13.2,c:67.7,f:6.5,pieceG:0},
+  'milk 1.5%':{p:3.4,c:4.9,f:1.5,pieceG:0},
+  'milk 1.5 %':{p:3.4,c:4.9,f:1.5,pieceG:0},
+  'skim milk':{p:3.4,c:5,f:0.1,pieceG:0},
+  'whole milk':{p:3.2,c:4.8,f:3.3,pieceG:0},
+  'whey':{p:80,c:8,f:4,pieceG:0},
+  'chicken breast':{p:31,c:0,f:3.6,pieceG:0},
+  'egg':{p:13,c:1.1,f:11,pieceG:50},
+  'banana':{p:1.1,c:23,f:0.3,pieceG:120},
+  'rice':{p:2.7,c:28,f:0.3,pieceG:0},
+  'cashew':{p:18,c:30,f:44,pieceG:1.6},
+  'cashews':{p:18,c:30,f:44,pieceG:1.6},
+  'almond':{p:21,c:22,f:50,pieceG:1.2},
+  'almonds':{p:21,c:22,f:50,pieceG:1.2},
+  'peanut butter':{p:25,c:20,f:50,pieceG:0},
+  'buckwheat':{p:13,c:72,f:3.4,pieceG:0},
+  'skyr':{p:11,c:4,f:0.2,pieceG:0},
+  'cottage cheese':{p:11,c:3.4,f:4.3,pieceG:0},
+  'broccoli':{p:2.8,c:7,f:0.4,pieceG:0},
+};
+
+function findFood(name){
+  const k=String(name||'').toLowerCase().trim();
+  if(!k)return null;
+  if(FOOD_DB[k])return FOOD_DB[k];
+  const hit=Object.keys(FOOD_DB).find(n=>k.includes(n)||n.includes(k));
+  return hit?FOOD_DB[hit]:null;
+}
+
+function calcIngredientMacros(name,qty,unit){
+  const food=findFood(name);if(!food)return null;
+  const q=parseFloat(qty);if(isNaN(q)||q<=0)return null;
+  let grams=q;
+  if(unit==='pcs'&&food.pieceG)grams=q*food.pieceG;
+  else if(unit==='ml')grams=q;
+  const m=grams/100;
+  return {p:food.p*m,c:food.c*m,f:food.f*m,name};
+}
+
+function toggleMealDb(){
+  mealDbOpen=!mealDbOpen;
+  const el=document.getElementById('meal-library');
+  const lbl=document.getElementById('meal-db-toggle');
+  if(el)el.style.display=mealDbOpen?'block':'none';
+  if(lbl)lbl.textContent=mealDbOpen?'Hide':'Show';
+  if(mealDbOpen)renderMealLibrary();
+}
 
 function switchFuelTab(t){
   fuelTab=t;
@@ -1090,10 +1505,93 @@ function switchFuelTab(t){
 
 function switchMealTab(tab){
   mealTab=tab;
-  ['macro','kcal','ai'].forEach(t=>{
+  ['build','macro','kcal','ai'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById('pane-'+t).style.display=t===tab?'block':'none';
   });
+}
+
+function renderBuildItems(){
+  const el=document.getElementById('mb-items');if(!el)return;
+  el.innerHTML=buildItems.map((it,i)=>`
+    <div class="row" style="margin-bottom:6px;align-items:center">
+      <input class="inp" id="mbf-${i}" placeholder="e.g. Rolled oats" value="${escAttr(it.food)}" style="flex:2">
+      <input class="inp" id="mbq-${i}" placeholder="Qty" value="${escAttr(it.qty)}" type="number" style="flex:1">
+      <select class="inp" id="mbu-${i}" style="flex:1">
+        <option value="g"${it.unit==='g'?' selected':''}>g</option>
+        <option value="ml"${it.unit==='ml'?' selected':''}>ml</option>
+        <option value="pcs"${it.unit==='pcs'?' selected':''}>pcs</option>
+      </select>
+      ${buildItems.length>1?`<button type="button" onclick="removeBuildItem(${i})" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px">×</button>`:''}
+    </div>`).join('');
+}
+
+function syncBuildItemsFromDom(){
+  buildItems=buildItems.map((_,i)=>({
+    food:document.getElementById('mbf-'+i)?.value||'',
+    qty:document.getElementById('mbq-'+i)?.value||'',
+    unit:document.getElementById('mbu-'+i)?.value||'g'
+  }));
+}
+
+function addBuildItem(){
+  syncBuildItemsFromDom();
+  if(buildItems.length>=6){toast('Max 6 ingredients');return;}
+  buildItems.push({food:'',qty:'',unit:'g'});
+  renderBuildItems();
+}
+
+function removeBuildItem(i){
+  syncBuildItemsFromDom();
+  buildItems.splice(i,1);
+  if(!buildItems.length)buildItems=[{food:'',qty:'',unit:'g'}];
+  renderBuildItems();
+}
+
+function readBuildIngredients(){
+  syncBuildItemsFromDom();
+  return buildItems.filter(it=>it.food.trim()&&it.qty);
+}
+
+async function calcBuildMeal(){
+  const items=readBuildIngredients();
+  if(!items.length){toast('Add at least one ingredient');return;}
+  const prev=document.getElementById('mb-preview');
+  prev.style.display='block';
+  prev.innerHTML=`<div class="ai-thinking"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Calculating…</span></div>`;
+  let p=0,c=0,f=0;const parts=[];const unknown=[];
+  items.forEach(it=>{
+    const m=calcIngredientMacros(it.food,it.qty,it.unit);
+    if(m){p+=m.p;c+=m.c;f+=m.f;parts.push(`${it.qty}${it.unit} ${it.food}`);}
+    else unknown.push(`${it.qty}${it.unit} ${it.food}`);
+  });
+  if(unknown.length&&GEMINI_KEY){
+    try{
+      const desc=items.map(it=>`${it.qty}${it.unit} ${it.food}`).join(', ');
+      const parsed=await geminiJson({
+        system:'Return ONLY JSON with keys protein,carbs,fat,kcal (numbers). Estimate total for all ingredients combined.',
+        prompt:'Total nutrition for: '+desc
+      });
+      p=parsed.protein||p;c=parsed.carbs||c;f=parsed.fat||f;
+      buildCalcResult={p,c,f,k:Math.round(parsed.kcal||p*4+c*4+f*9),d:desc};
+    }catch(e){
+      if(!p&&!c&&!f){prev.innerHTML=`<div style="color:var(--red);font-size:12px">Could not calculate: ${e.message}</div>`;return;}
+      buildCalcResult={p,c,f,k:Math.round(p*4+c*4+f*9),d:parts.join(' + ')};
+    }
+  }else{
+    if(!p&&!c&&!f){prev.innerHTML=`<div style="color:var(--amb);font-size:12px">Unknown foods — add Gemini key (AI → 🔑) or use common items like oats, milk, cashews.</div>`;return;}
+    buildCalcResult={p,c,f,k:Math.round(p*4+c*4+f*9),d:parts.join(' + ')};
+  }
+  prev.innerHTML=`
+    <div style="background:var(--s3);border-radius:var(--rs);padding:12px">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px">${buildCalcResult.d}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;text-align:center">
+        <div><div style="font-family:var(--fD);font-size:22px;color:var(--acc)">${Math.round(buildCalcResult.p)}</div><div style="font-size:9px;color:var(--tx3)">PROTEIN</div></div>
+        <div><div style="font-family:var(--fD);font-size:22px;color:var(--blu)">${Math.round(buildCalcResult.c)}</div><div style="font-size:9px;color:var(--tx3)">CARBS</div></div>
+        <div><div style="font-family:var(--fD);font-size:22px;color:var(--amb)">${Math.round(buildCalcResult.f)}</div><div style="font-size:9px;color:var(--tx3)">FAT</div></div>
+        <div><div style="font-family:var(--fD);font-size:22px;color:var(--txt)">${Math.round(buildCalcResult.k)}</div><div style="font-size:9px;color:var(--tx3)">KCAL</div></div>
+      </div>
+    </div>`;
 }
 
 function renderFuel(){
@@ -1101,40 +1599,80 @@ function renderFuel(){
   document.getElementById('nmc-t').textContent='/ '+T.carbs+'g';
   document.getElementById('nmf-t').textContent='/ '+T.fat+'g';
   document.getElementById('n-kcal-t').textContent=T.kcal;
-  renderMealLibrary();renderFuelLog();refreshMacroUI();
-  // reset to today tab on navigate
+  renderQuickMeals();
+  if(mealDbOpen)renderMealLibrary();
+  renderFuelLog();refreshMacroUI();
   switchFuelTab('today');
 }
 
-function renderMealLibrary(){
-  document.getElementById('meal-library').innerHTML=MEALS.map(m=>`
+function renderQuickMeals(){
+  const el=document.getElementById('meal-quick');
+  const defaults=MEALS.filter(m=>m.def);
+  if(!defaults.length){
+    el.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:10px">No default meals yet.<br>Open Meal Database and star a meal, or build one.</div>';
+    return;
+  }
+  el.innerHTML=defaults.map(m=>`
     <div class="fi">
       <div style="flex:1">
         <div class="fn">${m.n}</div>
-        <div class="fm2">${m.p?m.p+'P · ':''}${m.c?m.c+'C · ':''}${m.f?m.f+'F · ':''}<span style="color:var(--acc)">${m.k} kcal</span></div>
+        <div class="fm2">${m.p?Math.round(m.p)+'P · ':''}${m.c?Math.round(m.c)+'C · ':''}${m.f?Math.round(m.f)+'F · ':''}<span style="color:var(--acc)">${m.k} kcal</span></div>
+      </div>
+      <button class="btn sm" onclick="logMeal('${m.id}')">＋ Log</button>
+    </div>`).join('');
+}
+
+function renderMealLibrary(){
+  const el=document.getElementById('meal-library');
+  if(!MEALS.length){el.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:10px">No meals saved yet.</div>';return;}
+  el.innerHTML=MEALS.map(m=>`
+    <div class="fi">
+      <div style="flex:1">
+        <div class="fn">${m.n}${m.def?' <span class="pill g" style="font-size:8px">DEFAULT</span>':''}</div>
+        <div class="fm2">${m.p?Math.round(m.p)+'P · ':''}${m.c?Math.round(m.c)+'C · ':''}${m.f?Math.round(m.f)+'F · ':''}<span style="color:var(--acc)">${m.k} kcal</span></div>
         <div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.d||''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px">
         <button class="btn sm" onclick="logMeal('${m.id}')">＋ Log</button>
-        <button class="btn gh sm" onclick="openEditMeal('${m.id}')">✏️</button>
+        <div style="display:flex;gap:4px">
+          <button class="btn gh sm" onclick="toggleMealDefault('${m.id}')" title="Toggle default">${m.def?'★':'☆'}</button>
+          <button class="btn gh sm" onclick="openEditMeal('${m.id}')">✏️</button>
+        </div>
       </div>
     </div>`).join('');
 }
 
+function toggleMealDefault(id){
+  const m=MEALS.find(x=>x.id===id);if(!m)return;
+  m.def=!m.def;
+  LS.set('meals',MEALS);
+  renderQuickMeals();
+  if(mealDbOpen)renderMealLibrary();
+  toast(m.def?'Added to Quick Meals':'Removed from Quick Meals');
+}
+
 function openAddMeal(){
-  mealEditId=null;
-  document.getElementById('meal-modal-title').textContent='Add Meal';
+  mealEditId=null;buildCalcResult=null;
+  buildItems=[{food:'',qty:'',unit:'g'}];
+  document.getElementById('meal-modal-title').textContent='Build Meal';
   document.getElementById('meal-del-btn').style.display='none';
-  ['mm-name','mm-desc','mm-p','mm-c','mm-f','mk-name','mk-desc','mk-kcal','ai-query'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('mb-name').value='';
+  document.getElementById('mb-default').checked=false;
+  document.getElementById('mb-preview').style.display='none';
+  renderBuildItems();
+  ['mm-name','mm-desc','mm-p','mm-c','mm-f','mk-name','mk-desc','mk-p','mk-c','mk-f','mk-kcal','ai-query'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('mm-kcal-preview').textContent='0 kcal';
+  const mkPrev=document.getElementById('mk-kcal-preview');if(mkPrev)mkPrev.textContent='0 kcal';
   document.getElementById('ai-result').style.display='none';
-  switchMealTab('macro');openModal('meal');
+  switchMealTab('build');openModal('meal');
 }
 
 function openEditMeal(id){
   const m=MEALS.find(x=>x.id===id);if(!m)return;
-  mealEditId=id;
+  mealEditId=id;buildCalcResult={p:m.p,c:m.c,f:m.f,k:m.k,d:m.d||''};
   document.getElementById('meal-modal-title').textContent='Edit Meal';
+  document.getElementById('mb-name').value=m.n;
+  document.getElementById('mb-default').checked=!!m.def;
   document.getElementById('mm-name').value=m.n;document.getElementById('mm-desc').value=m.d||'';
   document.getElementById('mm-p').value=m.p;document.getElementById('mm-c').value=m.c;document.getElementById('mm-f').value=m.f;
   calcMealKcal();document.getElementById('meal-del-btn').style.display='block';
@@ -1148,11 +1686,32 @@ function calcMealKcal(){
   document.getElementById('mm-kcal-preview').textContent=Math.round(p*4+c*4+f*9)+' kcal';
 }
 
+function calcKcalEntry(){
+  const p=parseFloat(document.getElementById('mk-p')?.value)||0;
+  const c=parseFloat(document.getElementById('mk-c')?.value)||0;
+  const f=parseFloat(document.getElementById('mk-f')?.value)||0;
+  const k=Math.round(p*4+c*4+f*9);
+  const prev=document.getElementById('mk-kcal-preview');
+  if(prev)prev.textContent=k+' kcal';
+}
+
 function saveMealModal(){
-  let n,d,p=0,c=0,f=0,k=0;
-  if(mealTab==='kcal'){
+  let n,d,p=0,c=0,f=0,k=0,def=false;
+  if(mealTab==='build'){
+    n=document.getElementById('mb-name').value.trim();
+    if(!n){toast('Enter meal name');return;}
+    if(!buildCalcResult){toast('Tap Calculate macros first');return;}
+    d=buildCalcResult.d;p=buildCalcResult.p;c=buildCalcResult.c;f=buildCalcResult.f;k=buildCalcResult.k;
+  }else if(mealTab==='kcal'){
     n=document.getElementById('mk-name').value;if(!n){toast('Enter meal name');return;}
-    d=document.getElementById('mk-desc').value;k=parseInt(document.getElementById('mk-kcal').value)||0;
+    d=document.getElementById('mk-desc').value;
+    p=parseFloat(document.getElementById('mk-p')?.value)||0;
+    c=parseFloat(document.getElementById('mk-c')?.value)||0;
+    f=parseFloat(document.getElementById('mk-f')?.value)||0;
+    const computed=Math.round(p*4+c*4+f*9);
+    const manual=parseInt(document.getElementById('mk-kcal').value)||0;
+    k=(p||c||f)?computed:manual;
+    if(!k){toast('Enter calories or macros');return;}
   }else if(mealTab==='ai'){
     const res=document.getElementById('ai-result');
     if(!res.dataset.n){toast('Run AI lookup first');return;}
@@ -1163,36 +1722,46 @@ function saveMealModal(){
     p=parseFloat(document.getElementById('mm-p').value)||0;c=parseFloat(document.getElementById('mm-c').value)||0;f=parseFloat(document.getElementById('mm-f').value)||0;
     k=Math.round(p*4+c*4+f*9);
   }
+  def=!!document.getElementById('mb-default')?.checked;
   if(mealEditId){
     const i=MEALS.findIndex(x=>x.id===mealEditId);
-    if(i>=0)MEALS[i]={...MEALS[i],n,d,p,c,f,k};toast('Meal updated ✓');
-  }else{MEALS.push({id:'m'+Date.now(),n,d,p,c,f,k});toast('Meal added ✓');}
-  LS.set('meals',MEALS);closeModal('meal');renderMealLibrary();
+    if(i>=0)MEALS[i]={...MEALS[i],n,d,p,c,f,k,def};toast('Meal updated ✓');
+  }else{MEALS.push({id:'m'+Date.now(),n,d,p,c,f,k,def});toast('Meal saved to database ✓');}
+  LS.set('meals',MEALS);closeModal('meal');renderQuickMeals();if(mealDbOpen)renderMealLibrary();
 }
 
 function deleteMealFromModal(){
   if(!mealEditId)return;MEALS=MEALS.filter(m=>m.id!==mealEditId);
-  LS.set('meals',MEALS);closeModal('meal');renderMealLibrary();toast('Deleted');
+  LS.set('meals',MEALS);closeModal('meal');renderQuickMeals();if(mealDbOpen)renderMealLibrary();toast('Deleted');
 }
 
 function logMeal(id){
   const m=MEALS.find(x=>x.id===id);if(!m)return;
   FUEL.log.push({n:m.n,p:m.p,c:m.c,f:m.f,k:m.k,t:timeNow()});
   recalcFuel();saveFuelState();renderFuelLog();refreshMacroUI();toast('Logged: '+m.n);
-  drivePushIfConnected();
 }
 
 function delFoodItem(i){FUEL.log.splice(i,1);recalcFuel();saveFuelState();renderFuelLog();refreshMacroUI();}
 
-function clearFuel(){FUEL={log:[],p:0,c:0,f:0,date:TODAY};LS.set('fuel',FUEL);renderFuelLog();refreshMacroUI();toast('Day cleared');}
+function clearFuel(){FUEL={log:[],p:0,c:0,f:0,k:0,date:TODAY};LS.set('fuel',FUEL);renderFuelLog();refreshMacroUI();toast('Day cleared');}
 
-function recalcFuel(){FUEL.p=FUEL.log.reduce((a,e)=>a+e.p,0);FUEL.c=FUEL.log.reduce((a,e)=>a+e.c,0);FUEL.f=FUEL.log.reduce((a,e)=>a+e.f,0);}
+function recalcFuel(){
+  FUEL.p=FUEL.log.reduce((a,e)=>a+(parseFloat(e.p)||0),0);
+  FUEL.c=FUEL.log.reduce((a,e)=>a+(parseFloat(e.c)||0),0);
+  FUEL.f=FUEL.log.reduce((a,e)=>a+(parseFloat(e.f)||0),0);
+  FUEL.k=FUEL.log.reduce((a,e)=>{
+    const kk=parseFloat(e.k);
+    if(!isNaN(kk))return a+kk;
+    const pp=parseFloat(e.p)||0,cc=parseFloat(e.c)||0,ff=parseFloat(e.f)||0;
+    return a+Math.round(pp*4+cc*4+ff*9);
+  },0);
+}
 
 function saveFuelState(){
   LS.set('fuel',FUEL);
   // archive to history
   if(FUEL.log.length){
-    FUEL_HIST[TODAY]={log:[...FUEL.log],p:FUEL.p,c:FUEL.c,f:FUEL.f,k:Math.round(FUEL.p*4+FUEL.c*4+FUEL.f*9)};
+    FUEL_HIST[TODAY]={log:[...FUEL.log],p:FUEL.p,c:FUEL.c,f:FUEL.f,k:Math.round(FUEL.k||0)};
     LS.set('fuel_hist',FUEL_HIST);
   }
 }
@@ -1307,17 +1876,10 @@ async function aiLookup(){
   resDiv.style.display='block';
   resDiv.innerHTML=`<div class="ai-thinking"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Looking up nutrition…</span></div>`;
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:400,
-        system:'You are a precise nutrition database. Return ONLY a JSON object with keys: name, desc, protein, carbs, fat, kcal (all numbers in grams/kcal). No markdown, no explanation.',
-        messages:[{role:'user',content:'Estimate nutrition for: '+query}]
-      })
+    const parsed=await geminiJson({
+      system:'You are a precise nutrition database. Return ONLY a JSON object with keys: name, desc, protein, carbs, fat, kcal (all numbers in grams/kcal). No markdown, no explanation.',
+      prompt:'Estimate nutrition for: '+query
     });
-    const data=await resp.json();
-    const text=data.content?.find(c=>c.type==='text')?.text||'';
-    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
     resDiv.dataset.n=parsed.name||query;resDiv.dataset.d=parsed.desc||query;
     resDiv.dataset.p=parsed.protein||0;resDiv.dataset.c=parsed.carbs||0;
     resDiv.dataset.f=parsed.fat||0;resDiv.dataset.k=parsed.kcal||0;
@@ -1333,7 +1895,11 @@ async function aiLookup(){
         </div>
       </div>`;
   }catch(e){
-    resDiv.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px 0">Could not fetch data. Check connection.</div>`;
+    if(String(e?.message||'')==='NO_API_KEY'){
+      resDiv.innerHTML=`<div style="color:var(--amb);font-size:12px;padding:8px 0">Set your Gemini API key (AI → 🔑 API key). Free at aistudio.google.com</div>`;
+    }else{
+      resDiv.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px 0">AI lookup failed: ${(e?.message||'Unknown error')}</div>`;
+    }
   }
 }
 
@@ -1369,11 +1935,13 @@ function autoSaveSession(){
     while(document.getElementById(`w_${ei}_${si}`)){
       const wv=document.getElementById(`w_${ei}_${si}`).value||document.getElementById(`w_${ei}_${si}`).getAttribute('data-pw')||'';
       const rv=document.getElementById(`r_${ei}_${si}`).value||'';
+      const nv=document.getElementById(`n_${ei}_${si}`)?.value||'';
       const done=document.getElementById(`sc_${ei}_${si}`)?.classList.contains('done')||false;
-      const w=parseFloat(wv)||0,r=parseFloat(rv)||0;
+      const w=parseFloat(wv)||0,r=parseFloat(String(rv).split('+')[0])||0;
       if(done&&w*r>maxV){maxV=w*r;pb={w:wv||String(w),r:rv||String(r)};}
-      if(wv||rv)any=true;
-      sets.push({w:wv,r:rv,done});si++;
+      if(wv||rv||nv)any=true;
+      const set={w:wv,r:rv,done};if(nv)set.note=nv;
+      sets.push(set);si++;
     }
     const prevPB=getLastPB(ex.id);
     const isPB=pb&&(!prevPB||(parseFloat(pb.w)*parseFloat(pb.r)>(parseFloat(prevPB.w)||0)*(parseFloat(prevPB.r)||0)));
@@ -1448,6 +2016,45 @@ function delHIIT(i){
   LS.set('hiit_log',HIIT_LOG);renderHIITToday();
 }
 
+function renderExCard(ex,ei,todayEx,lastEx){
+  const pb=getLastPB(ex.id)||lastEx?.pb;
+  const rest=ex.rest||'2 min';
+  const setRows=Array.from({length:ex.s||3},(_,si)=>{
+    const draftW=todayEx?.sets?.[si]?.w??'';
+    const draftR=todayEx?.sets?.[si]?.r??'';
+    const draftN=todayEx?.sets?.[si]?.note??'';
+    const prevW=lastEx?.sets?.[si]?.w??ex.lw?.[si]??'';
+    const prevR=lastEx?.sets?.[si]?.r??ex.lr?.[si]??'';
+    const hintN=ex.ln?.[si]??'';
+    const isDone=todayEx?.sets?.[si]?.done||false;
+    return `<div class="sr">
+      <div class="sn">${si+1}</div>
+      <input class="si" id="w_${ei}_${si}" type="text" value="${escAttr(draftW)}" placeholder="${escAttr(prevW||'kg')}" data-pw="${escAttr(prevW)}" oninput="scheduleAutoSave()">
+      <input class="si" id="r_${ei}_${si}" type="text" value="${escAttr(draftR)}" placeholder="${escAttr(prevR||'reps')}" data-pr="${escAttr(prevR)}" oninput="scheduleAutoSave()">
+      <input class="si si-note" id="n_${ei}_${si}" type="text" value="${escAttr(draftN)}" placeholder="${escAttr(hintN||'note')}" oninput="scheduleAutoSave()">
+      <button class="sc${isDone?' done':''}" id="sc_${ei}_${si}" onclick="toggleSC(${ei},${si})">✓</button>
+    </div>`;
+  }).join('');
+  return `<div class="exc" id="exc_${ei}">
+    <div class="exh">
+      <div style="flex:1;cursor:pointer" onclick="togEx(${ei})">
+        <div class="exn">${escAttr(ex.n)}<span class="ex-rest">⏱ ${escAttr(rest)}</span></div>
+        <div class="ext">${escAttr(ex.t||'')}${ex.ss?` · <span style="color:var(--pur)">SS ${escAttr(ex.ss)}</span>`:''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <div style="font-size:10px;color:var(--acc);font-family:var(--fm)">${pb?'PB '+escAttr(pb.w)+'×'+escAttr(pb.r):''}</div>
+        <button class="tutorial-btn" onclick="showTutorial(${JSON.stringify(ex.n)})" title="How to do this exercise">?</button>
+      </div>
+    </div>
+    <div class="exb open" id="exb_${ei}">
+      <div class="sh"><span>SET</span><span>KG</span><span>REPS</span><span>NOTE</span><span>✓</span></div>
+      ${setRows}
+      <button class="as-btn" onclick="addSet(${ei})">＋ add set</button>
+      <div class="ex-acts"><button class="btn gh sm" style="flex:1" onclick="openEditEx(${ei})">✏️ Edit / Delete</button></div>
+    </div>
+  </div>`;
+}
+
 function renderExList(){
   const el=document.getElementById('exlist');
   const plan=getActivePlan();
@@ -1459,40 +2066,17 @@ function renderExList(){
   const exs=getDayEx(selDay);
   if(!exs.length){el.innerHTML='<div class="card" style="text-align:center;color:var(--tx3);padding:18px">No exercises. Tap ＋ Add.</div>';return;}
   const todaySess=SESS.find(s=>s.date===TODAY&&s.day===selDay);
-  el.innerHTML=exs.map((ex,ei)=>{
-    const lastSess=SESS.filter(s=>s.day===selDay&&s.date!==TODAY).slice(-1)[0];
-    const lastEx=lastSess?.ex?.find(e=>e.id===ex.id);
-    const todayEx=todaySess?.ex?.find(e=>e.id===ex.id);
-    const pb=getLastPB(ex.id)||lastEx?.pb;
-    const setRows=Array.from({length:ex.s||3},(_,si)=>{
-      const draftW=todayEx?.sets?.[si]?.w??'';
-      const draftR=todayEx?.sets?.[si]?.r??'';
-      const prevW=lastEx?.sets?.[si]?.w??ex.lw?.[si]??'';
-      const prevR=lastEx?.sets?.[si]?.r??'';
-      const isDone=todayEx?.sets?.[si]?.done||false;
-      return `<div class="sr">
-        <div class="sn">${si+1}</div>
-        <input class="si" id="w_${ei}_${si}" type="text" value="${draftW}" placeholder="${prevW||'kg'}" data-pw="${prevW}" oninput="scheduleAutoSave()">
-        <input class="si" id="r_${ei}_${si}" type="number" value="${draftR}" placeholder="${prevR||'reps'}" data-pr="${prevR}" inputmode="numeric" oninput="scheduleAutoSave()">
-        <button class="sc${isDone?' done':''}" id="sc_${ei}_${si}" onclick="toggleSC(${ei},${si})">✓</button>
-        <div></div>
-      </div>`;
+  const lastSess=SESS.filter(s=>s.day===selDay&&s.date!==TODAY).slice(-1)[0];
+  el.innerHTML=groupExBySuperset(exs).map(g=>{
+    const cards=g.items.map(({ex,ei})=>{
+      const todayEx=todaySess?.ex?.find(e=>e.id===ex.id);
+      const lastEx=lastSess?.ex?.find(e=>e.id===ex.id);
+      return renderExCard(ex,ei,todayEx,lastEx);
     }).join('');
-    return `<div class="exc" id="exc_${ei}">
-      <div class="exh">
-        <div style="flex:1;cursor:pointer" onclick="togEx(${ei})"><div class="exn">${ex.n}</div><div class="ext">${ex.t}</div></div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-          <div style="font-size:10px;color:var(--acc);font-family:var(--fm)">${pb?'PB '+pb.w+'×'+pb.r:''}</div>
-          <button class="tutorial-btn" onclick="showTutorial('${ex.n}')" title="How to do this exercise">?</button>
-        </div>
-      </div>
-      <div class="exb open" id="exb_${ei}">
-        <div class="sh"><span>SET</span><span>KG</span><span>REPS</span><span>✓</span><span></span></div>
-        ${setRows}
-        <button class="as-btn" onclick="addSet(${ei})">＋ add set</button>
-        <div class="ex-acts"><button class="btn gh sm" style="flex:1" onclick="openEditEx(${ei})">✏️ Edit / Delete</button></div>
-      </div>
-    </div>`;
+    if(g.ss&&g.items.length>1){
+      return `<div class="ss-wrap"><div class="ss-hd">⚡ Superset ${escAttr(g.ss)}</div>${cards}</div>`;
+    }
+    return cards;
   }).join('');
 }
 
@@ -1505,7 +2089,7 @@ function addSet(ei){
   const body=document.getElementById('exb_'+ei);if(!body)return;
   const addBtn=body.querySelector('.as-btn');
   const row=document.createElement('div');row.className='sr';
-  row.innerHTML=`<div class="sn">${si+1}</div><input class="si" id="w_${ei}_${si}" type="text" placeholder="${pw||'kg'}" data-pw="${pw}" oninput="scheduleAutoSave()"><input class="si" id="r_${ei}_${si}" type="number" placeholder="reps" inputmode="numeric" oninput="scheduleAutoSave()"><button class="sc" id="sc_${ei}_${si}" onclick="toggleSC(${ei},${si})">✓</button><div></div>`;
+  row.innerHTML=`<div class="sn">${si+1}</div><input class="si" id="w_${ei}_${si}" type="text" placeholder="${escAttr(pw||'kg')}" data-pw="${escAttr(pw)}" oninput="scheduleAutoSave()"><input class="si" id="r_${ei}_${si}" type="text" placeholder="reps" oninput="scheduleAutoSave()"><input class="si si-note" id="n_${ei}_${si}" type="text" placeholder="note" oninput="scheduleAutoSave()"><button class="sc" id="sc_${ei}_${si}" onclick="toggleSC(${ei},${si})">✓</button>`;
   body.insertBefore(row,addBtn);
   const dc=CEX[selDay]||[];const ov=dc.find(o=>o.id===ex.id&&o.act==='edit');
   if(ov)ov.data.s=(ov.data.s||ex.s)+1;else dc.push({id:ex.id,act:'edit',data:{s:si+1}});
@@ -1514,14 +2098,23 @@ function addSet(ei){
 
 function openEditEx(ei){
   const exs=getDayEx(selDay),ex=exs[ei];if(!ex)return;editEI=ei;
-  document.getElementById('ee-name').value=ex.n;document.getElementById('ee-target').value=ex.t||'';document.getElementById('ee-sets').value=ex.s||3;
+  document.getElementById('ee-name').value=ex.n;
+  document.getElementById('ee-rest').value=ex.rest||'2 min';
+  document.getElementById('ee-target').value=ex.t||'';
+  document.getElementById('ee-sets').value=ex.s||3;
+  document.getElementById('ee-ss').value=ex.ss||'';
   openModal('editEx');
 }
 function saveEditEx(){
   const exs=getDayEx(selDay),ex=exs[editEI];if(!ex)return;
-  const nn=document.getElementById('ee-name').value||ex.n;const nt=document.getElementById('ee-target').value||ex.t;const ns=parseInt(document.getElementById('ee-sets').value)||ex.s;
+  const nn=document.getElementById('ee-name').value||ex.n;
+  const nr=document.getElementById('ee-rest').value.trim()||'2 min';
+  const nt=document.getElementById('ee-target').value||ex.t;
+  const ns=parseInt(document.getElementById('ee-sets').value)||ex.s;
+  const nss=normSs(document.getElementById('ee-ss').value);
   const dc=CEX[selDay]||[];const ov=dc.find(o=>o.id===ex.id&&o.act==='edit');
-  if(ov)Object.assign(ov.data,{n:nn,t:nt,s:ns});else dc.push({id:ex.id,act:'edit',data:{n:nn,t:nt,s:ns}});
+  const patch={n:nn,rest:nr,t:nt,s:ns,ss:nss};
+  if(ov)Object.assign(ov.data,patch);else dc.push({id:ex.id,act:'edit',data:patch});
   CEX[selDay]=dc;LS.set('cex',CEX);closeModal('editEx');renderExList();toast('Updated ✓');
 }
 function deleteEx(){
@@ -1531,9 +2124,14 @@ function deleteEx(){
 }
 function confirmAddEx(){
   const n=document.getElementById('ae-name').value;if(!n){toast('Enter name');return;}
-  const t=document.getElementById('ae-target').value||'8–12';const s=parseInt(document.getElementById('ae-sets').value)||3;const id='cx_'+Date.now();
-  const dc=CEX[selDay]||[];dc.push({id,act:'add',data:{id,n,t,s,lw:[]}});
-  CEX[selDay]=dc;LS.set('cex',CEX);['ae-name','ae-target','ae-sets'].forEach(i=>document.getElementById(i).value='');
+  const rest=document.getElementById('ae-rest').value.trim()||'2 min';
+  const t=document.getElementById('ae-target').value||'8–12';
+  const s=parseInt(document.getElementById('ae-sets').value)||3;
+  const ss=normSs(document.getElementById('ae-ss').value);
+  const id='cx_'+Date.now();
+  const dc=CEX[selDay]||[];dc.push({id,act:'add',data:{id,n,t,s,lw:[],rest,ss}});
+  CEX[selDay]=dc;LS.set('cex',CEX);
+  ['ae-name','ae-rest','ae-target','ae-sets','ae-ss'].forEach(i=>{const el=document.getElementById(i);if(el)el.value=i==='ae-rest'?'2 min':'';});
   closeModal('addEx');renderExList();toast('Added: '+n);
 }
 
@@ -1591,16 +2189,10 @@ function showTutorial(exName){
 
 async function fetchExTutorial(exName){
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:350,
-        system:'Return ONLY a JSON object with two keys: "cues" (array of exactly 5 short coaching cues as plain strings, each under 15 words) and "muscles" (array of 3-4 muscle names as plain strings). No markdown, no explanation, no emoji.',
-        messages:[{role:'user',content:'Exercise form cues for: '+exName}]
-      })
+    const parsed=await geminiJson({
+      system:'Return ONLY a JSON object with two keys: "cues" (array of exactly 5 short coaching cues as plain strings, each under 15 words) and "muscles" (array of 3-4 muscle names as plain strings). No markdown, no explanation, no emoji.',
+      prompt:'Exercise form cues for: '+exName
     });
-    const data=await resp.json();
-    const parsed=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
     const cuesEl=document.getElementById('tut-cues');
     const musclesEl=document.getElementById('tut-muscles');
     cuesEl.innerHTML='<div style="font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">FORM CUES</div>'+
@@ -1608,7 +2200,10 @@ async function fetchExTutorial(exName){
     musclesEl.innerHTML='<div style="width:100%;font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">MUSCLES WORKED</div>'+
       (parsed.muscles||[]).map(m=>`<span class="pill b">${m}</span>`).join('');
   }catch(e){
-    document.getElementById('tut-cues').innerHTML='<div style="color:var(--tx3);font-size:13px;padding:8px 0">Focus on controlled form, full range of motion, and progressive overload. Never sacrifice technique for weight.</div>';
+    const msg=String(e?.message||'')==='NO_API_KEY'
+      ?'Set your Gemini API key (AI → 🔑). Free at aistudio.google.com'
+      :(e?.message||'Focus on controlled form, full range of motion, and progressive overload. Never sacrifice technique for weight.');
+    document.getElementById('tut-cues').innerHTML=`<div style="color:var(--tx3);font-size:13px;padding:8px 0">${msg}</div>`;
   }
 }
 
@@ -1655,15 +2250,15 @@ function renderPrograms(){
   const el=document.getElementById('prog-list');
   const activeId=ACTIVE_PROG||PROGRAMS[0]?.id;
   const activeP=PROGRAMS.find(p=>p.id===activeId);
-  
+
   let html=`<div class="card" style="padding:10px 14px;margin-bottom:6px">
     <div class="clb" style="margin-bottom:4px">Active Program</div>
     <div style="font-size:15px;font-weight:700;color:var(--acc)">${activeP?activeP.name:'No programs yet'}</div>
     <div style="font-size:11px;color:var(--tx3);margin-top:2px">${activeP?activeP.type+' · '+activeP.weeks+' weeks'+(activeP.notes?' · '+activeP.notes:''):'Create one below'}</div>
   </div>`;
-  
+
   if(!PROGRAMS.length){
-    html+='<div style="padding:0 13px;font-size:13px;color:var(--tx3);text-align:center;padding-top:20px">No programs yet.<br>Tap ＋ New to build one.</div>';
+    html+='<div style="padding:0 13px;font-size:13px;color:var(--tx3);text-align:center;padding-top:12px">No programs yet.<br>Tap ＋ New to build one.</div>';
   }else{
     html+=PROGRAMS.map(p=>`
       <div class="prog-card${p.id===activeId?' active-prog':''}">
@@ -1674,6 +2269,7 @@ function renderPrograms(){
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
             ${p.id!==activeId?`<button class="btn sm" onclick="setActiveProgram('${p.id}')">▶ Apply</button>`:'<span class="pill g">✓ Active</span>'}
+            <button class="btn bl sm" onclick="copyProgram('${p.id}')">⎘</button>
             <button class="btn gh sm" onclick="openEditProgram('${p.id}')">✏️</button>
           </div>
         </div>
@@ -1683,6 +2279,18 @@ function renderPrograms(){
       </div>`).join('');
   }
   el.innerHTML=html;
+}
+
+function ensureProgramCatalog(){
+  let changed=false;
+  const ids=new Set(PROGRAMS.map(p=>p.id));
+  POPULAR_TEMPLATES.forEach(t=>{
+    if(!ids.has(t.id)){
+      PROGRAMS.push(JSON.parse(JSON.stringify(t)));
+      changed=true;
+    }
+  });
+  if(changed)LS.set('programs',PROGRAMS);
 }
 
 function setActiveProgram(id){
@@ -1715,6 +2323,17 @@ function openEditProgram(id){
   openModal('prog');
 }
 
+function copyProgram(id){
+  const p=PROGRAMS.find(x=>x.id===id);if(!p){toast('Program not found');return;}
+  const cloned=JSON.parse(JSON.stringify(p));
+  cloned.id='prog_'+Date.now();
+  cloned.name=(cloned.name||'Program')+' (Copy)';
+  PROGRAMS.push(cloned);
+  LS.set('programs',PROGRAMS);
+  renderPrograms();
+  toast('Program copied ✓');
+}
+
 function buildProgDaysEditor(){
   const el=document.getElementById('prog-days-editor');
   el.innerHTML=DN.map((d,i)=>{
@@ -1732,10 +2351,15 @@ function buildProgDaysEditor(){
         </select>
       </div>
       <div id="prog-exlist-${i}">
-        ${exList.map((ex,ei)=>`<div style="font-size:12px;color:var(--tx2);padding:3px 0;display:flex;justify-content:space-between;align-items:center">
-          <span>${ex.n}${ex.t?' · '+ex.t:''} · ${ex.s||3} sets</span>
-          <button onclick="removeProgEx(${i},${ei})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 4px">×</button>
-        </div>`).join('')}
+        ${exList.map((ex,ei)=>{
+          const ssBadge=ex.ss?`<span class="pill p" style="font-size:8px;margin-right:4px">SS ${ex.ss}</span>`:'';
+          return `<div style="font-size:12px;color:var(--tx2);padding:3px 0;display:flex;justify-content:space-between;align-items:center;gap:6px">
+          <span style="flex:1;line-height:1.35">${ssBadge}${ex.n} · ${ex.rest||'2 min'} rest · ${ex.t||''} · ${ex.s||3} sets</span>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button onclick="openEditProgEx(${i},${ei})" style="background:var(--s3);border:1px solid var(--bd2);border-radius:6px;color:var(--tx2);cursor:pointer;font-size:11px;padding:2px 7px">✏️</button>
+            <button onclick="removeProgEx(${i},${ei})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 4px">×</button>
+          </div>
+        </div>`;}).join('')}
       </div>
       <button class="btn gh sm" style="margin-top:4px;width:100%" onclick="openAddProgEx(${i})">＋ Add exercise</button>
     </div>`;
@@ -1751,25 +2375,63 @@ function updateProgDay(i){
   progDays[i].col=type==='Strength'?'b':type==='REST'?'a':'g';
 }
 
-let progExDay=null;
+let progExDay=null,progExEditIdx=null;
+
+function resetProgExForm(){
+  document.getElementById('pex-name').value='';
+  document.getElementById('pex-rest').value='2 min';
+  document.getElementById('pex-target').value='';
+  document.getElementById('pex-sets').value='';
+  document.getElementById('pex-weight').value='';
+  document.getElementById('pex-ss').value='';
+}
+
 function openAddProgEx(dayIdx){
-  progExDay=dayIdx;
-  ['pex-name','pex-target','pex-sets','pex-weight'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  progExDay=dayIdx;progExEditIdx=null;
+  document.getElementById('progex-title').textContent='Add Exercise to Day';
+  document.getElementById('progex-save-btn').textContent='Add Exercise';
+  resetProgExForm();
+  openModal('progex');
+}
+
+function openEditProgEx(dayIdx,exIdx){
+  const ex=progDays[dayIdx]?.ex?.[exIdx];if(!ex)return;
+  progExDay=dayIdx;progExEditIdx=exIdx;
+  document.getElementById('progex-title').textContent='Edit Exercise';
+  document.getElementById('progex-save-btn').textContent='Save Changes';
+  document.getElementById('pex-name').value=ex.n||'';
+  document.getElementById('pex-rest').value=ex.rest||'2 min';
+  document.getElementById('pex-target').value=ex.t||'';
+  document.getElementById('pex-sets').value=ex.s||3;
+  document.getElementById('pex-weight').value=ex.lw?.[0]??'';
+  document.getElementById('pex-ss').value=ex.ss||'';
   openModal('progex');
 }
 
 function confirmProgEx(){
   const n=document.getElementById('pex-name').value;if(!n){toast('Enter exercise name');return;}
+  const rest=document.getElementById('pex-rest').value.trim()||'2 min';
   const t=document.getElementById('pex-target').value||'8–12 reps';
   const s=parseInt(document.getElementById('pex-sets').value)||3;
   const w=document.getElementById('pex-weight').value||'bw';
-  const id='pex_'+Date.now();
+  const ssRaw=document.getElementById('pex-ss').value.trim();
+  const ss=normSs(ssRaw);
   if(!progDays[progExDay])progDays[progExDay]={name:'',type:'Light',col:'g',ex:[]};
   if(!progDays[progExDay].ex)progDays[progExDay].ex=[];
-  progDays[progExDay].ex.push({id,n,t,s,lw:Array(s).fill(isNaN(parseFloat(w))?w:parseFloat(w))});
+  const lwBase=isNaN(parseFloat(w))?w:parseFloat(w);
+  let lw=Array(s).fill(lwBase);
+  if(progExEditIdx!=null){
+    const prev=progDays[progExDay].ex[progExEditIdx];
+    const oldLw=prev.lw||[];
+    lw=Array.from({length:s},(_,i)=>oldLw[i]??lwBase);
+    progDays[progExDay].ex[progExEditIdx]={id:prev.id,n,t,s,lw,rest,ss};
+    toast('Exercise updated ✓');
+  }else{
+    progDays[progExDay].ex.push({id:'pex_'+Date.now(),n,t,s,lw,rest,ss});
+    toast('Exercise added ✓');
+  }
   closeModal('progex');
   buildProgDaysEditor();
-  // Re-populate inputs (buildProgDaysEditor resets them)
 }
 
 function removeProgEx(dayIdx,exIdx){
@@ -1809,7 +2471,6 @@ function logBW(){
   if(isNaN(v)||v<20||v>300){toast('Enter valid weight');return;}
   BODY.entries.push({date:TODAY,bw:v,bf:T.currentBF});BODY.currentBW=v;LS.set('body',BODY);
   document.getElementById('bw-in').value='';renderBody();renderHome();toast('Logged: '+v+' kg');
-  drivePushIfConnected();
 }
 function renderBody(){renderBodyStats();renderBodyHist();renderBodyCharts();}
 function renderBodyStats(){
@@ -1920,6 +2581,86 @@ RULES:
 
 let chatHistory=[];
 
+function tryParseJsonFromText(txt){
+  if(!txt)return null;
+  const first=txt.indexOf('{');
+  const last=txt.lastIndexOf('}');
+  if(first<0||last<0||last<=first)return null;
+  const chunk=txt.slice(first,last+1);
+  try{return JSON.parse(chunk);}catch{return null;}
+}
+
+function avg(nums){
+  const v=nums.filter(n=>typeof n==='number'&&!isNaN(n));
+  return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
+}
+
+function offlineCoachReply(messages){
+  const lastUser=[...messages].reverse().find(m=>m.role==='user')?.content||'';
+  const ctx=tryParseJsonFromText(lastUser);
+
+  // If we have live context JSON, do real analysis.
+  if(ctx&&typeof ctx==='object'){
+    const t=ctx.targets||{};
+    const fuel=(ctx.fuelLast7Days||[]).filter(d=>d&&d.kcal!=null);
+    const wl=(ctx.weightLog||[]).filter(e=>e&&e.bw!=null);
+    const sess=(ctx.recentSessions||[]).filter(s=>s&&s.date);
+
+    const kcalAvg=avg(fuel.map(d=>d.kcal));
+    const pAvg=avg(fuel.map(d=>d.p));
+    const cAvg=avg(fuel.map(d=>d.c));
+    const fAvg=avg(fuel.map(d=>d.f));
+
+    const kcalT=t.kcal||0, pT=t.protein||0, cT=t.carbs||0, fT=t.fat||0;
+    const kcalDelta=(kcalAvg!=null&&kcalT)?Math.round(kcalAvg-kcalT):null;
+    const pDelta=(pAvg!=null&&pT)?Math.round(pAvg-pT):null;
+
+    const w0=wl.length?wl[0].bw:null;
+    const w1=wl.length?wl[wl.length-1].bw:null;
+    const wDelta=(w0!=null&&w1!=null)?(w1-w0):null;
+
+    const sessCount7=sess.filter(s=>{
+      // crude: count all recent sessions provided (already sliced by caller)
+      return true;
+    }).length;
+
+    const lines=[];
+    lines.push('**Offline Coach (no API key)** — using your saved tracker data.');
+    if(kcalAvg!=null)lines.push(`- **Calories (7d avg)**: ${Math.round(kcalAvg)} vs target ${kcalT||'—'} (${kcalDelta!=null?(kcalDelta>0?'+':'')+kcalDelta:'—'} kcal)`);
+    if(pAvg!=null)lines.push(`- **Protein (7d avg)**: ${Math.round(pAvg)}g vs target ${pT||'—'}g (${pDelta!=null?(pDelta>0?'+':'')+pDelta:'—'}g)`);
+    if(wDelta!=null)lines.push(`- **Weight trend (≈14d)**: ${w0.toFixed(1)} → ${w1.toFixed(1)} kg (${wDelta>0?'+':''}${wDelta.toFixed(1)} kg)`);
+    if(sessCount7)lines.push(`- **Training**: ${sessCount7} recent sessions logged.`);
+
+    // Recommendations
+    lines.push('');
+    lines.push('**Top actions (next 7 days)**');
+    if(pAvg!=null&&pT&&pAvg<pT*0.9)lines.push(`- **Increase protein** to ≥ ${pT}g/day (muscle retention + satiety).`);
+    else if(pAvg!=null&&pT)lines.push(`- **Keep protein steady** around ${pT}g/day (good compliance).`);
+
+    if(kcalAvg!=null&&kcalT){
+      if(kcalAvg>kcalT*1.08)lines.push(`- **Tighten calories**: reduce ~150–250 kcal/day (you’re averaging above target).`);
+      else if(kcalAvg<kcalT*0.85)lines.push(`- **Don’t under-eat**: add ~100–200 kcal/day (too low risks performance).`);
+      else lines.push(`- **Calories are on target**: keep current plan and focus on consistency.`);
+    }
+
+    if(cAvg!=null&&cT&&cAvg<cT*0.7)lines.push(`- **Add carbs around training** (performance + volume): +30–60g on lift days.`);
+    if(fAvg!=null&&fT&&fAvg<fT*0.6)lines.push(`- **Don’t crash fats**: aim ≥ ${fT}g/day (hormones + adherence).`);
+
+    lines.push('');
+    lines.push('If you want full conversational AI, add an API key later. Offline mode will always work.');
+    return lines.join('\n');
+  }
+
+  // Generic offline fallback (no context JSON)
+  return [
+    '**Offline Coach (free)**',
+    '- Tap **📊 Load data** for a real analysis from your logs.',
+    '- Without loaded data, I can still answer training/nutrition questions, but responses are template-based (not cloud AI).',
+    '',
+    'Try: “Fuel review”, “Plateau fix”, or “Split audit”.'
+  ].join('\n');
+}
+
 function loadContext(){
   const recentWeight=BODY.entries.slice(-14);
   const recentFuel=Object.entries(FUEL_HIST).sort().slice(-7).map(([d,h])=>({date:d,kcal:h.k,p:Math.round(h.p||0),c:Math.round(h.c||0),f:Math.round(h.f||0)}));
@@ -1931,7 +2672,7 @@ function loadContext(){
     fuelLast7Days:recentFuel,
     recentSessions:recentSess,
     recentHIIT,
-    today:{fuel:{p:Math.round(FUEL.p),c:Math.round(FUEL.c),f:Math.round(FUEL.f),kcal:Math.round(FUEL.p*4+FUEL.c*4+FUEL.f*9)},date:TODAY}
+    today:{fuel:{p:Math.round(FUEL.p),c:Math.round(FUEL.c),f:Math.round(FUEL.f),kcal:Math.round(FUEL.k||0)},date:TODAY}
   };
   const msg=`Here is my live tracker data. Please analyse it and give me your top observations and recommendations:\n\n${JSON.stringify(ctx,null,2)}`;
   cqSend(msg,'📊 Analysing your data…');
@@ -1969,19 +2710,22 @@ async function sendChat(){
 async function sendChatWithHistory(){
   const tid=appendTyping();
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:APEX_SYSTEM,messages:chatHistory})
-    });
-    const data=await resp.json();
+    const reply=await geminiGenerate({system:APEX_SYSTEM,messages:chatHistory,maxTokens:1000});
     removeTyping(tid);
-    const reply=data.content?.map(c=>c.text||'').join('')||'No response.';
     appendCMsg('apex',reply);
     chatHistory.push({role:'assistant',content:reply});
     if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
   }catch(e){
     removeTyping(tid);
-    appendCMsg('apex','Connection error. Check your network and try again.');
+    const errMsg=String(e?.message||'');
+    if(errMsg==='NO_API_KEY'||/quota|rate limit|resource exhausted|limit:\s*0/i.test(errMsg)){
+      const reply=offlineCoachReply(chatHistory);
+      appendCMsg('apex',reply);
+      chatHistory.push({role:'assistant',content:reply});
+      if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
+    }else{
+      appendCMsg('apex','AI error: '+errMsg);
+    }
   }
 }
 
@@ -2005,220 +2749,6 @@ function appendTyping(){
 }
 function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
 
-// ═══════════════ GOOGLE DRIVE SYNC ═══════════════
-const GOOG_CLIENT_ID = '50021772575-dipdiqkt33qneebln7tc3bbf2rb62uu2.apps.googleusercontent.com';
-const GOOG_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
-const DRIVE_FILENAME = 'apex_backup.json';
-
-let driveToken = null;
-let driveFileId = LS.get('drive_file_id', null);
-let driveUser = LS.get('drive_user', null);
-let tokenClient = null;
-let driveAutoTimer = null;
-
-function initDriveClient(){
-  if(!window.google){setTimeout(initDriveClient, 500); return;}
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GOOG_CLIENT_ID,
-    scope: GOOG_SCOPES,
-    callback: async (resp) => {
-      if(resp.error){
-        driveSetStatus('❌ Sign-in failed: ' + resp.error, false);
-        return;
-      }
-      driveToken = resp.access_token;
-      // Get user info
-      try{
-        const ui = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers:{Authorization:'Bearer '+driveToken}
-        });
-        const ud = await ui.json();
-        driveUser = ud.email || 'Connected';
-        LS.set('drive_user', driveUser);
-      }catch(e){}
-      driveSetStatus('✓ '+driveUser+' — syncing…', true);
-      await drivePush();
-      driveStartAutoSync();
-    }
-  });
-  // Restore session if user was previously connected
-  if(driveUser) driveRestoreSession();
-}
-
-function driveRestoreSession(){
-  // Show status bar with last known user
-  showDriveBar();
-  driveSetStatus('☁ '+driveUser+' — tap Save now to sync', true);
-}
-
-function driveSync(){
-  if(!tokenClient){toast('Google not loaded yet, try again');return;}
-  // If we already have a token, just push. Otherwise prompt login.
-  if(driveToken){
-    drivePush();
-  } else {
-    tokenClient.requestAccessToken({prompt: driveUser ? 'none' : 'consent'});
-  }
-}
-
-function showDriveBar(){
-  const bar = document.getElementById('drive-status-bar');
-  if(bar) bar.style.display = 'flex';
-}
-
-function driveSetStatus(msg, connected){
-  showDriveBar();
-  const el = document.getElementById('drive-status-text');
-  if(el) el.textContent = msg;
-  const btn = document.getElementById('drive-btn');
-  if(btn){
-    btn.textContent = connected ? '☁ Synced' : '☁ Drive Sync';
-    btn.style.background = connected ? 'rgba(200,245,58,0.13)' : 'var(--s3)';
-    btn.style.color = connected ? 'var(--acc)' : 'var(--tx2)';
-    btn.style.borderColor = connected ? 'var(--acc)' : 'var(--bd2)';
-  }
-}
-
-function buildBackupData(){
-  return JSON.stringify({
-    version:7,
-    exportedAt: new Date().toISOString(),
-    targets:T, meals:MEALS, fuel:FUEL, fuel_hist:FUEL_HIST,
-    body:BODY, sessions:SESS, hiit_log:HIIT_LOG,
-    programs:PROGRAMS, active_prog:ACTIVE_PROG, cex:CEX,
-    saved_prompts:SAVED_PROMPTS,
-  }, null, 2);
-}
-
-async function drivePush(){
-  if(!driveToken){toast('Not signed in to Drive');return;}
-  driveSetStatus('↑ Saving to Drive…', true);
-  try{
-    const content = buildBackupData();
-    const blob = new Blob([content], {type:'application/json'});
-
-    if(driveFileId){
-      // Update existing file
-      const res = await fetch(
-        `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
-        {method:'PATCH', headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'}, body:blob}
-      );
-      if(res.status === 404){driveFileId=null; LS.set('drive_file_id',null); await drivePush(); return;}
-      if(!res.ok) throw new Error('Update failed: '+res.status);
-    } else {
-      // Search for existing file first
-      const searchRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id,name)`,
-        {headers:{Authorization:'Bearer '+driveToken}}
-      );
-      const searchData = await searchRes.json();
-      if(searchData.files && searchData.files.length > 0){
-        driveFileId = searchData.files[0].id;
-        LS.set('drive_file_id', driveFileId);
-        await drivePush(); return;
-      }
-      // Create new file in appDataFolder (hidden, private, only this app can see it)
-      const meta = JSON.stringify({name: DRIVE_FILENAME, parents:['appDataFolder']});
-      const form = new FormData();
-      form.append('metadata', new Blob([meta],{type:'application/json'}));
-      form.append('file', blob);
-      const createRes = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
-        {method:'POST', headers:{Authorization:'Bearer '+driveToken}, body:form}
-      );
-      const createData = await createRes.json();
-      driveFileId = createData.id;
-      LS.set('drive_file_id', driveFileId);
-    }
-    const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    driveSetStatus('✓ '+driveUser+' — saved '+now, true);
-    LS.set('drive_last_sync', new Date().toISOString());
-    toast('☁ Saved to Drive ✓');
-  } catch(err){
-    console.error('Drive push error:', err);
-    driveSetStatus('❌ Sync failed — '+err.message, false);
-    // Token may have expired - request new one silently
-    if(err.message && err.message.includes('401')){
-      driveToken = null;
-      tokenClient.requestAccessToken({prompt:'none'});
-    }
-  }
-}
-
-async function drivePull(){
-  if(!driveToken){toast('Not signed in to Drive');return;}
-  if(!confirm('Load backup from Drive? This will REPLACE your current data.'))return;
-  driveSetStatus('↓ Loading from Drive…', true);
-  try{
-    // Find file
-    let fid = driveFileId;
-    if(!fid){
-      const searchRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id,name)`,
-        {headers:{Authorization:'Bearer '+driveToken}}
-      );
-      const sd = await searchRes.json();
-      if(!sd.files || !sd.files.length){toast('No backup found on Drive');driveSetStatus('✓ '+driveUser+' — no backup found',true);return;}
-      fid = sd.files[0].id;
-      driveFileId = fid;
-      LS.set('drive_file_id', fid);
-    }
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fid}?alt=media`,
-      {headers:{Authorization:'Bearer '+driveToken}}
-    );
-    if(!res.ok) throw new Error('Download failed: '+res.status);
-    const data = await res.json();
-    // Restore all data
-    if(data.targets){T=data.targets;LS.set('targets',T);}
-    if(data.meals){MEALS=data.meals;LS.set('meals',MEALS);}
-    if(data.fuel){FUEL=data.fuel;LS.set('fuel',FUEL);}
-    if(data.fuel_hist){FUEL_HIST=data.fuel_hist;LS.set('fuel_hist',FUEL_HIST);}
-    if(data.body){BODY=data.body;LS.set('body',BODY);}
-    if(data.sessions){SESS=data.sessions;LS.set('sessions',SESS);}
-    if(data.hiit_log){HIIT_LOG=data.hiit_log;LS.set('hiit_log',HIIT_LOG);}
-    if(data.programs){PROGRAMS=data.programs;LS.set('programs',PROGRAMS);}
-    if(data.active_prog!==undefined){ACTIVE_PROG=data.active_prog;LS.set('active_prog',ACTIVE_PROG);}
-    if(data.cex){CEX=data.cex;LS.set('cex',CEX);}
-    if(data.saved_prompts){SAVED_PROMPTS=data.saved_prompts;LS.set('saved_prompts',SAVED_PROMPTS);}
-    renderHome();renderFuel();renderPrograms();renderBody();renderSavedPrompts();
-    const ts = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date';
-    driveSetStatus('✓ '+driveUser+' — loaded backup from '+ts, true);
-    toast('☁ Drive backup restored ✓');
-  } catch(err){
-    console.error('Drive pull error:', err);
-    driveSetStatus('❌ Load failed — '+err.message, false);
-  }
-}
-
-function driveSignOut(){
-  if(driveToken) google.accounts.oauth2.revoke(driveToken, ()=>{});
-  driveToken = null;
-  driveUser = null;
-  driveFileId = null;
-  LS.set('drive_user', null);
-  LS.set('drive_file_id', null);
-  clearInterval(driveAutoTimer);
-  const bar = document.getElementById('drive-status-bar');
-  if(bar) bar.style.display = 'none';
-  const btn = document.getElementById('drive-btn');
-  if(btn){btn.textContent='☁ Drive Sync';btn.style.background='var(--s3)';btn.style.color='var(--tx2)';btn.style.borderColor='var(--bd2)';}
-  toast('Signed out of Drive');
-}
-
-function driveStartAutoSync(){
-  clearInterval(driveAutoTimer);
-  // Auto-sync every 30 minutes while app is open
-  driveAutoTimer = setInterval(()=>{
-    if(driveToken) drivePush();
-  }, 30 * 60 * 1000);
-}
-
-// Also trigger a Drive push whenever user logs something important
-function drivePushIfConnected(){
-  if(driveToken) drivePush();
-}
-
 // ═══════════════ BACKUP & RESTORE ═══════════════
 function exportBackup(){
   const data={
@@ -2235,6 +2765,7 @@ function exportBackup(){
     active_prog:ACTIVE_PROG,
     cex:CEX,
     saved_prompts:SAVED_PROMPTS,
+    gemini_key:GEMINI_KEY,
   };
   const json=JSON.stringify(data,null,2);
   const blob=new Blob([json],{type:'application/json'});
@@ -2286,9 +2817,12 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 function timeNow(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
 
 // ═══════════════ INIT ═══════════════
+ensureProgramCatalog();
+if(!MEALS.some(m=>m.def)){
+  MEALS.forEach((m,i)=>{if(i<5||m.id?.match(/^m[0-4]$/))m.def=true;});
+  LS.set('meals',MEALS);
+}
 renderHome();renderFuel();renderSavedPrompts();
-// Init Drive after short delay to let Google GSI script load
-setTimeout(initDriveClient, 1500);
 </script>
 </body>
 </html>
